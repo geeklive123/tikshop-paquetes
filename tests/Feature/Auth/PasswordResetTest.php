@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
 class PasswordResetTest extends TestCase
@@ -27,6 +28,23 @@ class PasswordResetTest extends TestCase
 
         $this->post('/forgot-password', ['email' => $user->email]);
 
+        Notification::assertSentTo($user, ResetPassword::class);
+    }
+
+    public function test_reset_link_response_does_not_reveal_whether_email_exists(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create();
+
+        $existingEmailResponse = $this->post('/forgot-password', ['email' => $user->email]);
+        $missingEmailResponse = $this->post('/forgot-password', ['email' => 'missing@example.com']);
+
+        $existingEmailResponse
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', __(Password::RESET_LINK_SENT));
+        $missingEmailResponse
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', __(Password::RESET_LINK_SENT));
         Notification::assertSentTo($user, ResetPassword::class);
     }
 

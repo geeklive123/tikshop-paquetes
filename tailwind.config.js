@@ -11,8 +11,15 @@ export default {
 
     theme: {
         extend: {
+            colors: {
+                'tik-red': '#F20D18',
+                'tik-red-dark': '#B80810',
+                'tik-ink': '#111111',
+                'tik-box': '#D99A62',
+                'tik-gray': '#F5F5F5',
+            },
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: [...defaultTheme.fontFamily.sans],
             },
         },
     },
