@@ -50,6 +50,18 @@ class Company extends Model
         return $this->hasMany(Package::class);
     }
 
+    /** @return HasMany<PackageCategory, $this> */
+    public function packageCategories(): HasMany
+    {
+        return $this->hasMany(PackageCategory::class);
+    }
+
+    /** @return HasMany<Seller, $this> */
+    public function sellers(): HasMany
+    {
+        return $this->hasMany(Seller::class);
+    }
+
     /**
      * @return array<string, string>
      */

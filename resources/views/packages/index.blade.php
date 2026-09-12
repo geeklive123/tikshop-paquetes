@@ -48,6 +48,8 @@
                                 <div class="grid grid-cols-2 gap-4 text-sm">
                                     <div><p class="text-xs font-medium text-gray-500">Remitente</p><p class="mt-1 font-medium text-tik-ink">{{ $package->sender_name }}</p></div>
                                     <div><p class="text-xs font-medium text-gray-500">Destinatario</p><p class="mt-1 font-medium text-tik-ink">{{ $package->recipient_name }}</p><p class="text-gray-500">{{ $package->recipient_phone }}</p></div>
+                                    <div><p class="text-xs font-medium text-gray-500">Categoría</p><p class="mt-1 font-medium text-tik-ink">{{ $package->category?->name ?? 'Sin categoría' }}</p></div>
+                                    <div><p class="text-xs font-medium text-gray-500">Ubicación / costo</p><p class="mt-1 font-mono font-bold text-tik-ink">{{ $package->storage_code }}</p><p class="text-gray-500">Bs {{ number_format((float) $package->storage_price, 2) }}</p></div>
                                 </div>
                                 <div class="flex items-center justify-between border-t border-gray-100 pt-3">
                                     <time class="text-xs text-gray-500">{{ $package->received_at?->format('d/m/Y H:i') }}</time>
@@ -61,7 +63,7 @@
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-tik-gray">
                                 <tr>
-                                    @foreach (['Código', 'Remitente', 'Destinatario', 'Teléfono', 'Estado', 'Fecha', 'Acción'] as $heading)
+                                    @foreach (['Código', 'Categoría', 'Ubicación', 'Costo', 'Remitente', 'Destinatario', 'Estado', 'Fecha', 'Acción'] as $heading)
                                         <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">{{ $heading }}</th>
                                     @endforeach
                                 </tr>
@@ -70,9 +72,11 @@
                                 @foreach ($packages as $package)
                                     <tr class="transition hover:bg-red-50/50">
                                         <td class="whitespace-nowrap px-5 py-4 font-mono text-sm font-bold text-tik-red-dark">{{ $package->tracking_code }}</td>
+                                        <td class="whitespace-nowrap px-5 py-4 text-sm font-medium text-tik-ink">{{ $package->category?->name ?? 'Sin categoría' }}</td>
+                                        <td class="whitespace-nowrap px-5 py-4 font-mono text-sm font-bold text-tik-ink">{{ $package->storage_code }}</td>
+                                        <td class="whitespace-nowrap px-5 py-4 text-sm text-gray-600">Bs {{ number_format((float) $package->storage_price, 2) }}</td>
                                         <td class="px-5 py-4 text-sm font-medium text-tik-ink">{{ $package->sender_name }}</td>
                                         <td class="px-5 py-4 text-sm font-medium text-tik-ink">{{ $package->recipient_name }}</td>
-                                        <td class="whitespace-nowrap px-5 py-4 text-sm text-gray-600">{{ $package->recipient_phone }}</td>
                                         <td class="whitespace-nowrap px-5 py-4"><x-package-status-badge :status="$package->status" /></td>
                                         <td class="whitespace-nowrap px-5 py-4 text-sm text-gray-600">{{ $package->received_at?->format('d/m/Y H:i') }}</td>
                                         <td class="whitespace-nowrap px-5 py-4"><a href="{{ route('packages.show', $package) }}" class="text-sm font-semibold text-tik-red-dark hover:text-tik-red">Ver</a></td>

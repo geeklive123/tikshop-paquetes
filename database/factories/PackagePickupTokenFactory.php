@@ -24,6 +24,7 @@ class PackagePickupTokenFactory extends Factory
         return [
             'package_id' => Package::factory(),
             'token_hash' => hash('sha256', $rawToken),
+            'token_encrypted' => $rawToken,
             'expires_at' => null,
             'used_at' => null,
             'revoked_at' => null,

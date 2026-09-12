@@ -4,11 +4,13 @@ namespace App\Models;
 
 use Database\Factories\PackagePickupTokenFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['package_id', 'token_hash', 'expires_at', 'used_at', 'revoked_at'])]
+#[Fillable(['package_id', 'token_hash', 'token_encrypted', 'expires_at', 'used_at', 'revoked_at'])]
+#[Hidden(['token_hash', 'token_encrypted'])]
 class PackagePickupToken extends Model
 {
     /** @use HasFactory<PackagePickupTokenFactory> */
@@ -24,6 +26,7 @@ class PackagePickupToken extends Model
     protected function casts(): array
     {
         return [
+            'token_encrypted' => 'encrypted',
             'expires_at' => 'datetime',
             'used_at' => 'datetime',
             'revoked_at' => 'datetime',

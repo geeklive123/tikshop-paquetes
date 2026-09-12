@@ -15,7 +15,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'company_id',
     'branch_id',
+    'seller_id',
+    'package_category_id',
     'tracking_code',
+    'storage_code',
+    'storage_price',
     'sender_name',
     'sender_phone',
     'recipient_name',
@@ -56,6 +60,18 @@ class Package extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    /** @return BelongsTo<Seller, $this> */
+    public function seller(): BelongsTo
+    {
+        return $this->belongsTo(Seller::class);
+    }
+
+    /** @return BelongsTo<PackageCategory, $this> */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(PackageCategory::class, 'package_category_id');
     }
 
     /** @return BelongsTo<User, $this> */
@@ -124,6 +140,7 @@ class Package extends Model
     {
         return [
             'status' => PackageStatus::class,
+            'storage_price' => 'decimal:2',
             'received_at' => 'datetime',
             'ready_at' => 'datetime',
             'delivered_at' => 'datetime',

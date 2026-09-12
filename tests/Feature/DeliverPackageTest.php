@@ -116,6 +116,7 @@ class DeliverPackageTest extends TestCase
         $rawToken = str_repeat('B', 64);
         $pickupToken = PackagePickupToken::factory()->for($package)->create([
             'token_hash' => hash('sha256', $rawToken),
+            'token_encrypted' => $rawToken,
         ]);
 
         return [$user, $package, $rawToken, $pickupToken];

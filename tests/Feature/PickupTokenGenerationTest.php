@@ -14,6 +14,7 @@ use App\Models\PackagePickupToken;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -33,6 +34,11 @@ class PickupTokenGenerationTest extends TestCase
         $this->assertSame(hash('sha256', $result['rawToken']), $result['pickupToken']->token_hash);
         $this->assertNotSame($result['rawToken'], $result['pickupToken']->token_hash);
         $this->assertDatabaseMissing('package_pickup_tokens', ['token_hash' => $result['rawToken']]);
+        $this->assertNotSame(
+            $result['rawToken'],
+            DB::table('package_pickup_tokens')->where('id', $result['pickupToken']->id)->value('token_encrypted'),
+        );
+        $this->assertSame($result['rawToken'], $result['pickupToken']->token_encrypted);
         $this->assertSame(PackageStatus::ReadyForPickup, $result['package']->status);
         $this->assertSame('2026-09-05 09:15:00', $result['package']->ready_at->format('Y-m-d H:i:s'));
         $this->assertDatabaseHas('package_events', [

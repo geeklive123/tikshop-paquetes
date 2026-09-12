@@ -23,6 +23,9 @@
                             <div><dt class="text-sm font-medium text-gray-500">Destinatario</dt><dd class="mt-1 font-semibold text-tik-ink">{{ $package->recipient_name }}</dd></div>
                             <div><dt class="text-sm font-medium text-gray-500">Fecha</dt><dd class="mt-1 font-semibold text-tik-ink">{{ $package->received_at?->format('d/m/Y H:i') }}</dd></div>
                             <div><dt class="text-sm font-medium text-gray-500">Estado</dt><dd class="mt-1 font-semibold text-tik-ink">{{ $package->status->label() }}</dd></div>
+                            <div><dt class="text-sm font-medium text-gray-500">Categoría</dt><dd class="mt-1 font-semibold text-tik-ink">{{ $package->category?->name ?? 'Sin categoría' }}</dd></div>
+                            <div><dt class="text-sm font-medium text-gray-500">Ubicación</dt><dd class="mt-1 font-mono font-bold text-tik-ink">{{ $package->storage_code }}</dd></div>
+                            <div><dt class="text-sm font-medium text-gray-500">Costo</dt><dd class="mt-1 font-bold text-tik-red-dark">Bs {{ number_format((float) $package->storage_price, 2) }}</dd></div>
                         </dl>
                     </div>
 
@@ -37,11 +40,10 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 gap-3 border-t border-gray-100 p-5 print:hidden sm:grid-cols-2 lg:grid-cols-4 sm:p-8">
-                    @if ($pickupQrDataUri)
-                        <button type="button" onclick="window.print()" class="inline-flex items-center justify-center rounded-xl bg-tik-red px-4 py-3 text-sm font-semibold text-white transition hover:bg-tik-red-dark">Imprimir</button>
-                    @endif
+                <div class="grid grid-cols-1 gap-3 border-t border-gray-100 p-5 print:hidden sm:grid-cols-2 lg:grid-cols-5 sm:p-8">
                     <a href="{{ route('packages.show', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-tik-box bg-white px-4 py-3 text-sm font-semibold text-tik-ink transition hover:bg-orange-50">Ver paquete</a>
+                    <a href="{{ route('packages.ticket', $package) }}" target="_blank" class="inline-flex items-center justify-center rounded-xl bg-tik-red px-4 py-3 text-sm font-semibold text-white transition hover:bg-tik-red-dark">Ver ticket PDF</a>
+                    <a href="{{ route('packages.ticket.download', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-tik-red px-4 py-3 text-sm font-semibold text-tik-red-dark transition hover:bg-red-50">Descargar ticket PDF</a>
                     <a href="{{ route('packages.create') }}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-tik-gray">Registrar otro paquete</a>
                     <a href="{{ route('packages.index') }}" class="inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-600 transition hover:bg-tik-gray hover:text-tik-ink">Volver al listado</a>
                 </div>

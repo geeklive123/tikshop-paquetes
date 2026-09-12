@@ -21,6 +21,9 @@
                     <div><dt class="text-sm font-medium text-gray-500">Fecha de recepción</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->received_at?->format('d/m/Y H:i') ?? 'Sin registrar' }}</dd></div>
                     <div><dt class="text-sm font-medium text-gray-500">Recibido por</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->receivedBy?->name ?? 'Sin registrar' }}</dd></div>
                     <div><dt class="text-sm font-medium text-gray-500">Sucursal</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->branch->name }}</dd></div>
+                    <div><dt class="text-sm font-medium text-gray-500">Categoría / tamaño</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->category?->name ?? 'Sin categoría' }}</dd></div>
+                    <div><dt class="text-sm font-medium text-gray-500">Código / ubicación</dt><dd class="mt-1 font-mono text-sm font-bold text-tik-ink">{{ $package->storage_code }}</dd></div>
+                    <div><dt class="text-sm font-medium text-gray-500">Costo de almacenaje</dt><dd class="mt-1 text-sm font-bold text-tik-red-dark">Bs {{ number_format((float) $package->storage_price, 2) }}</dd></div>
                 </dl>
 
                 @if (! in_array($package->status, [\App\Enums\PackageStatus::Delivered, \App\Enums\PackageStatus::Cancelled], true))
@@ -32,12 +35,16 @@
                         </form>
                     @endcan
                 @endif
+                <div class="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row">
+                    <a href="{{ route('packages.ticket', $package) }}" target="_blank" class="inline-flex items-center justify-center rounded-xl bg-tik-red px-5 py-3 text-sm font-semibold text-white hover:bg-tik-red-dark">Ver ticket PDF</a>
+                    <a href="{{ route('packages.ticket.download', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-tik-red px-5 py-3 text-sm font-semibold text-tik-red-dark hover:bg-red-50">Descargar ticket PDF</a>
+                </div>
             </section>
 
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                     <h2 class="text-xs font-bold uppercase tracking-wider text-tik-red-dark">Remitente</h2>
-                    <dl class="mt-5 space-y-4"><div><dt class="text-sm font-medium text-gray-500">Nombre</dt><dd class="mt-1 font-semibold text-tik-ink">{{ $package->sender_name }}</dd></div><div><dt class="text-sm font-medium text-gray-500">Celular</dt><dd class="mt-1 text-gray-800">{{ $package->sender_phone }}</dd></div></dl>
+                    <dl class="mt-5 space-y-4"><div><dt class="text-sm font-medium text-gray-500">Nombre</dt><dd class="mt-1 font-semibold text-tik-ink">{{ $package->sender_name }}</dd></div><div><dt class="text-sm font-medium text-gray-500">Celular</dt><dd class="mt-1 text-gray-800">{{ $package->sender_phone }}</dd></div>@if ($package->seller)<div><dt class="text-sm font-medium text-gray-500">Vendedor registrado</dt><dd class="mt-1"><a href="{{ route('sellers.show', $package->seller) }}" class="font-semibold text-tik-red-dark hover:text-tik-red">Ver ficha de {{ $package->seller->name }}</a></dd></div>@endif</dl>
                 </section>
                 <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                     <h2 class="text-xs font-bold uppercase tracking-wider text-tik-red-dark">Destinatario</h2>

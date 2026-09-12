@@ -5,7 +5,9 @@ namespace App\Actions\Packages;
 use App\Enums\PackageEventType;
 use App\Enums\PackageStatus;
 use App\Models\Package;
+use App\Models\PackageCategory;
 use App\Models\PackageEvent;
+use App\Models\Seller;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use DomainException;
@@ -16,7 +18,7 @@ class CreatePackageAction
     private const int MaximumDailySequence = 9999;
 
     /**
-     * @param  array{sender_name: string, sender_phone: string, recipient_name: string, recipient_phone: string, description?: string|null, notes?: string|null}  $data
+     * @param  array{seller_id: int|string, package_category_id: int|string, storage_code: string, recipient_name: string, recipient_phone: string, description?: string|null, notes?: string|null}  $data
      */
     public function execute(User $user, array $data): Package
     {
@@ -26,13 +28,33 @@ class CreatePackageAction
                 ->where('name', (string) config('tikshop.main_branch.name'))
                 ->where('active', true)
                 ->firstOrFail();
+            $category = PackageCategory::query()
+                ->whereKey($data['package_category_id'])
+                ->whereBelongsTo($company)
+                ->where('active', true)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $seller = Seller::query()
+                ->whereKey($data['seller_id'])
+                ->whereBelongsTo($company)
+                ->where('active', true)
+                ->firstOrFail();
             $receivedAt = now();
 
             $package = Package::query()->create([
-                ...$data,
                 'company_id' => $company->id,
                 'branch_id' => $branch->id,
+                'seller_id' => $seller->id,
+                'package_category_id' => $category->id,
+                'storage_price' => $category->price,
+                'storage_code' => $data['storage_code'],
                 'tracking_code' => $this->nextTrackingCode($receivedAt),
+                'sender_name' => $seller->snapshotName(),
+                'sender_phone' => $seller->phone,
+                'recipient_name' => $data['recipient_name'],
+                'recipient_phone' => $data['recipient_phone'],
+                'description' => $data['description'] ?? null,
+                'notes' => $data['notes'] ?? null,
                 'status' => PackageStatus::Received,
                 'received_at' => $receivedAt,
                 'received_by' => $user->id,

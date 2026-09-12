@@ -19,10 +19,22 @@
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="m3 7.5 9-4.5 9 4.5M3 7.5l9 4.5m-9-4.5V18l9 4m0-10 9-4.5M12 12v10m9-14.5V18l-9 4" /></svg>
             Paquetes
         </a>
+        @can('viewAny', \App\Models\Seller::class)
+            <a href="{{ route('sellers.index') }}" @click="sidebarOpen = false" @class(['flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition', 'bg-tik-red text-white shadow-sm shadow-black/30' => request()->routeIs('sellers.*'), 'text-gray-300 hover:bg-white/10 hover:text-white' => ! request()->routeIs('sellers.*')])>
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm11 10v-2a4 4 0 0 0-3-3.87m-1-11.26a4 4 0 0 1 0 7.75" /></svg>
+                Vendedores
+            </a>
+        @endcan
         <a href="{{ route('pickup.scanner') }}" @click="sidebarOpen = false" @class(['flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition', 'bg-tik-red text-white shadow-sm shadow-black/30' => request()->routeIs('pickup.*'), 'text-gray-300 hover:bg-white/10 hover:text-white' => ! request()->routeIs('pickup.*')])>
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 7V4h3m10 0h3v3m0 10v3h-3M7 20H4v-3M7 8h2v2H7V8Zm8 0h2v2h-2V8ZM7 14h2v2H7v-2Zm7 0h3v3h-3v-3Zm-3-3h2v2h-2v-2Z" /></svg>
             Escanear QR
         </a>
+        @can('viewAny', \App\Models\PackageCategory::class)
+            <a href="{{ route('package-categories.index') }}" @click="sidebarOpen = false" @class(['flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition', 'bg-tik-red text-white shadow-sm shadow-black/30' => request()->routeIs('package-categories.*'), 'text-gray-300 hover:bg-white/10 hover:text-white' => ! request()->routeIs('package-categories.*')])>
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 6h16M4 12h16M4 18h10" /></svg>
+                Categorías
+            </a>
+        @endcan
         @if (Auth::user()->role->canManageUsers())
             <a href="{{ route('users.index') }}" @click="sidebarOpen = false" @class(['flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition', 'bg-tik-red text-white shadow-sm shadow-black/30' => request()->routeIs('users.*'), 'text-gray-300 hover:bg-white/10 hover:text-white' => ! request()->routeIs('users.*')])>
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87m-1-11.26a4 4 0 0 1 0 7.75" /></svg>

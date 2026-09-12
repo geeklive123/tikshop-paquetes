@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\PackageCategory;
 use App\Models\User;
 use Database\Seeders\InitialSystemSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -61,6 +62,17 @@ class InitialSystemStructureTest extends TestCase
         $this->assertTrue($company->users->contains($owner));
         $this->assertSame('Super Administrador Tik Shop', $owner->name);
         $this->assertSame(UserRole::Owner, $owner->role);
+    }
+
+    public function test_initial_package_categories_are_created_with_prices(): void
+    {
+        $this->seed(InitialSystemSeeder::class);
+
+        $categories = PackageCategory::query()->orderBy('id')->get();
+
+        $this->assertSame(['Pequeño', 'Mediano', 'Grande', 'Muy Grande'], $categories->pluck('name')->all());
+        $this->assertSame(['2.00', '3.00', '5.00', '7.00'], $categories->pluck('price')->all());
+        $this->assertTrue($categories->every->active);
     }
 
     public function test_initial_owner_is_not_overwritten_when_seeder_runs_again(): void

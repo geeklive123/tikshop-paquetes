@@ -43,6 +43,7 @@ class GeneratePickupTokenAction
             $rawToken = Str::random(64);
             $pickupToken = $package->pickupTokens()->create([
                 'token_hash' => hash('sha256', $rawToken),
+                'token_encrypted' => $rawToken,
             ]);
 
             if ($package->status === PackageStatus::Received) {

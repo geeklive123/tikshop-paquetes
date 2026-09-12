@@ -8,6 +8,8 @@ use App\Actions\Packages\GeneratePickupTokenAction;
 use App\Enums\PackageStatus;
 use App\Http\Requests\Packages\StorePackageRequest;
 use App\Models\Package;
+use App\Models\PackageCategory;
+use App\Models\Seller;
 use App\Models\User;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\RedirectResponse;
@@ -33,6 +35,7 @@ class PackageController extends Controller
             ->forCompany($user->company)
             ->search($search)
             ->withStatus($status)
+            ->with('category:id,name')
             ->orderByDesc('received_at')
             ->orderByDesc('id')
             ->paginate(15)
@@ -49,11 +52,33 @@ class PackageController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
         Gate::authorize('create', Package::class);
 
-        return view('packages.create');
+        /** @var User $user */
+        $user = $request->user();
+        $categories = PackageCategory::query()
+            ->whereBelongsTo($user->company)
+            ->where('active', true)
+            ->orderBy('code_start')
+            ->orderBy('name')
+            ->get();
+        $sellers = Seller::query()
+            ->whereBelongsTo($user->company)
+            ->where('active', true)
+            ->orderBy('name')
+            ->orderBy('id')
+            ->get(['id', 'ulid', 'name', 'business_name', 'phone']);
+        $preselectedSellerId = $sellers
+            ->firstWhere('ulid', $request->string('seller')->toString())
+            ?->id;
+
+        return view('packages.create', [
+            'categories' => $categories,
+            'sellers' => $sellers,
+            'preselectedSellerId' => $preselectedSellerId,
+        ]);
     }
 
     /**
@@ -69,8 +94,9 @@ class PackageController extends Controller
         $package = $createPackage->execute(
             $user,
             $request->safe()->only([
-                'sender_name',
-                'sender_phone',
+                'seller_id',
+                'package_category_id',
+                'storage_code',
                 'recipient_name',
                 'recipient_phone',
                 'description',
@@ -91,6 +117,8 @@ class PackageController extends Controller
     ): View {
         Gate::authorize('view', $package);
 
+        $package->load(['branch:id,name', 'category:id,name']);
+
         $rawToken = $this->pickupTokenFromSession($request);
         $pickupQrDataUri = is_string($rawToken)
             ? $generatePickupQrCode->execute(route('pickup.show', ['token' => $rawToken]))
@@ -109,7 +137,7 @@ class PackageController extends Controller
     {
         Gate::authorize('view', $package);
 
-        $package->load(['branch:id,name', 'receivedBy:id,name']);
+        $package->load(['branch:id,name', 'category:id,name', 'receivedBy:id,name', 'seller:id,ulid,name,business_name']);
 
         return view('packages.show', ['package' => $package]);
     }
