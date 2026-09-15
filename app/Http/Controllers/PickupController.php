@@ -49,6 +49,7 @@ class PickupController extends Controller
         $user = $request->user();
         $package = Package::query()
             ->forCompany($user->company)
+            ->with('category:id,name')
             ->where('tracking_code', $request->string('tracking_code')->toString())
             ->first();
 
@@ -73,6 +74,8 @@ class PickupController extends Controller
 
     private function confirmationView(PackagePickupToken $pickupToken, string $rawToken): View
     {
+        $pickupToken->package->loadMissing('category:id,name');
+
         return view('pickup.confirm', [
             'package' => $pickupToken->package,
             'rawToken' => $rawToken,

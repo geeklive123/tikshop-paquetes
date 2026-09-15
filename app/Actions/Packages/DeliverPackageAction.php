@@ -8,6 +8,7 @@ use App\Models\Package;
 use App\Models\PackageEvent;
 use App\Models\PackagePickupToken;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -43,28 +44,66 @@ class DeliverPackageAction
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $this->ensureDeliverable($package, $pickupToken);
+            $this->ensurePickupTokenIsUsable($pickupToken);
 
-            $deliveredAt = now();
-            $package->update([
-                'status' => PackageStatus::Delivered,
-                'delivered_at' => $deliveredAt,
-                'delivered_by' => $user->id,
-            ]);
-            $pickupToken->update(['used_at' => $deliveredAt]);
-
-            PackageEvent::query()->create([
-                'package_id' => $package->id,
-                'user_id' => $user->id,
-                'event' => PackageEventType::PackageDelivered,
-                'metadata' => ['pickup_token_id' => $pickupToken->id],
-            ]);
-
-            return $package;
+            return $this->deliver($user, $package, $pickupToken);
         }, 5);
     }
 
-    private function ensureDeliverable(Package $package, PackagePickupToken $pickupToken): void
+    public function executeManually(User $user, Package $package): Package
+    {
+        return DB::transaction(function () use ($user, $package): Package {
+            $lockedPackage = Package::query()
+                ->whereKey($package->id)
+                ->where('company_id', $user->company_id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($lockedPackage === null) {
+                throw (new ModelNotFoundException)->setModel(Package::class);
+            }
+
+            Gate::forUser($user)->authorize('deliver', $lockedPackage);
+
+            $pickupToken = PackagePickupToken::query()
+                ->where('package_id', $lockedPackage->id)
+                ->whereNull('used_at')
+                ->whereNull('revoked_at')
+                ->where(function (Builder $query): void {
+                    $query->whereNull('expires_at')
+                        ->orWhere('expires_at', '>', now());
+                })
+                ->latest('id')
+                ->lockForUpdate()
+                ->first();
+
+            return $this->deliver($user, $lockedPackage, $pickupToken);
+        }, 5);
+    }
+
+    private function deliver(User $user, Package $package, ?PackagePickupToken $pickupToken): Package
+    {
+        $this->ensurePackageIsDeliverable($package);
+
+        $deliveredAt = now();
+        $package->update([
+            'status' => PackageStatus::Delivered,
+            'delivered_at' => $deliveredAt,
+            'delivered_by' => $user->id,
+        ]);
+        $pickupToken?->update(['used_at' => $deliveredAt]);
+
+        PackageEvent::query()->create([
+            'package_id' => $package->id,
+            'user_id' => $user->id,
+            'event' => PackageEventType::PackageDelivered,
+            'metadata' => $pickupToken === null ? null : ['pickup_token_id' => $pickupToken->id],
+        ]);
+
+        return $package;
+    }
+
+    private function ensurePickupTokenIsUsable(PackagePickupToken $pickupToken): void
     {
         if ($pickupToken->used_at !== null) {
             throw ValidationException::withMessages(['token' => 'Este código ya fue utilizado.']);
@@ -77,7 +116,10 @@ class DeliverPackageAction
         if ($pickupToken->expires_at?->isPast()) {
             throw ValidationException::withMessages(['token' => 'Este código QR ha expirado.']);
         }
+    }
 
+    private function ensurePackageIsDeliverable(Package $package): void
+    {
         if ($package->status === PackageStatus::Cancelled) {
             throw ValidationException::withMessages(['token' => 'Este paquete fue cancelado y no puede entregarse.']);
         }

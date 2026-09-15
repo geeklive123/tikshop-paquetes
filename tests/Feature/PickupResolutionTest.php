@@ -38,6 +38,8 @@ class PickupResolutionTest extends TestCase
     public function test_valid_qr_url_resolves_package_without_delivering_it(): void
     {
         [$user, $package, $rawToken] = $this->pickupContext();
+        $package->update(['storage_code' => 'P3']);
+        $categoryName = $package->category->name;
         $qrUrl = route('pickup.show', ['token' => $rawToken]);
 
         $response = $this->actingAs($user)->post(route('pickup.resolve'), ['code' => $qrUrl]);
@@ -45,6 +47,9 @@ class PickupResolutionTest extends TestCase
         $response->assertOk();
         $response->assertSee('PAQUETE ENCONTRADO');
         $response->assertSee($package->tracking_code);
+        $response->assertSee('UBICACIÓN');
+        $response->assertSee('P3');
+        $response->assertSee($categoryName);
         $response->assertSee('CONFIRMAR ENTREGA');
         $this->assertSame(PackageStatus::ReadyForPickup, $package->fresh()->status);
         $this->assertDatabaseHas('package_events', [
@@ -147,7 +152,8 @@ class PickupResolutionTest extends TestCase
 
         $ownResponse->assertOk();
         $ownResponse->assertSee($package->tracking_code);
-        $ownResponse->assertDontSee('CONFIRMAR ENTREGA');
+        $ownResponse->assertSee('CONFIRMAR ENTREGA');
+        $ownResponse->assertSee(route('packages.deliver', $package), escape: false);
         $otherResponse->assertOk();
         $otherResponse->assertSee('Paquete no encontrado');
     }

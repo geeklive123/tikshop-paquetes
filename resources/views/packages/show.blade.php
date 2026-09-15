@@ -20,11 +20,20 @@
                 <dl class="mt-6 grid grid-cols-1 gap-5 border-t border-gray-100 pt-5 sm:grid-cols-3">
                     <div><dt class="text-sm font-medium text-gray-500">Fecha de recepción</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->received_at?->format('d/m/Y H:i') ?? 'Sin registrar' }}</dd></div>
                     <div><dt class="text-sm font-medium text-gray-500">Recibido por</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->receivedBy?->name ?? 'Sin registrar' }}</dd></div>
-                    <div><dt class="text-sm font-medium text-gray-500">Sucursal</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->branch->name }}</dd></div>
+                    <div><dt class="text-sm font-medium text-gray-500">Sucursal</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->branch?->name ?? 'Sin registrar' }}</dd></div>
                     <div><dt class="text-sm font-medium text-gray-500">Categoría / tamaño</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->category?->name ?? 'Sin categoría' }}</dd></div>
-                    <div><dt class="text-sm font-medium text-gray-500">Código / ubicación</dt><dd class="mt-1 font-mono text-sm font-bold text-tik-ink">{{ $package->storage_code }}</dd></div>
-                    <div><dt class="text-sm font-medium text-gray-500">Costo de almacenaje</dt><dd class="mt-1 text-sm font-bold text-tik-red-dark">Bs {{ number_format((float) $package->storage_price, 2) }}</dd></div>
+                    <div><dt class="text-sm font-medium text-gray-500">Código / ubicación</dt><dd class="mt-1 font-mono text-sm font-bold text-tik-ink">{{ $package->storage_code ?? 'Sin registrar' }}</dd></div>
+                    <div><dt class="text-sm font-medium text-gray-500">Costo de almacenaje</dt><dd class="mt-1 text-sm font-bold text-tik-red-dark">{{ $package->storage_price === null ? 'Sin registrar' : 'Bs '.number_format((float) $package->storage_price, 2) }}</dd></div>
                 </dl>
+
+                @if ($package->status === \App\Enums\PackageStatus::ReadyForPickup)
+                    @can('deliver', $package)
+                        <form method="POST" action="{{ route('packages.deliver', $package) }}" class="mt-6 border-t border-gray-100 pt-5">
+                            @csrf
+                            <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl bg-tik-red px-5 py-3 text-sm font-bold text-white transition hover:bg-tik-red-dark sm:w-auto">CONFIRMAR ENTREGA</button>
+                        </form>
+                    @endcan
+                @endif
 
                 @if (! in_array($package->status, [\App\Enums\PackageStatus::Delivered, \App\Enums\PackageStatus::Cancelled], true))
                     @can('generatePickupToken', $package)

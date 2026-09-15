@@ -15,12 +15,21 @@
                         <x-package-status-badge :status="$package->status" />
                     </div>
                     <dl class="grid grid-cols-1 gap-5 py-6 sm:grid-cols-2">
+                        <div><dt class="text-sm font-medium text-gray-500">Ubicación</dt><dd class="mt-1 font-mono text-xl font-bold text-tik-ink">{{ $package->storage_code ?? 'Sin registrar' }}</dd></div>
+                        <div><dt class="text-sm font-medium text-gray-500">Categoría / tamaño</dt><dd class="mt-1 font-semibold text-tik-ink">{{ $package->category?->name ?? 'Sin categoría' }}</dd></div>
                         <div><dt class="text-sm font-medium text-gray-500">Destinatario</dt><dd class="mt-1 font-semibold text-tik-ink">{{ $package->recipient_name }}</dd></div>
                         <div><dt class="text-sm font-medium text-gray-500">Celular</dt><dd class="mt-1 font-semibold text-tik-ink">{{ $package->recipient_phone }}</dd></div>
                         <div><dt class="text-sm font-medium text-gray-500">Remitente</dt><dd class="mt-1 font-semibold text-tik-ink">{{ $package->sender_name }}</dd></div>
                         <div><dt class="text-sm font-medium text-gray-500">Descripción</dt><dd class="mt-1 text-sm text-tik-ink">{{ $package->description ?: 'Sin descripción' }}</dd></div>
                     </dl>
-                    <p class="rounded-xl bg-orange-50 px-4 py-3 text-sm text-amber-900">La búsqueda manual es solo informativa. Para entregar, escanea un QR válido.</p>
+                    @if ($package->status === \App\Enums\PackageStatus::ReadyForPickup)
+                        @can('deliver', $package)
+                            <form method="POST" action="{{ route('packages.deliver', $package) }}">
+                                @csrf
+                                <button type="submit" class="inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-tik-red px-6 text-base font-bold text-white transition hover:bg-tik-red-dark">CONFIRMAR ENTREGA</button>
+                            </form>
+                        @endcan
+                    @endif
                 @else
                     <div class="py-6 text-center">
                         <h2 class="text-xl font-bold text-tik-ink">Paquete no encontrado</h2>

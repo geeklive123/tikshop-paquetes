@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PackageStatus;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Package;
@@ -82,6 +83,49 @@ class ShowPackageTest extends TestCase
         $response = $this->actingAs($user)->get(route('packages.success', $otherPackage));
 
         $response->assertNotFound();
+    }
+
+    public function test_ready_package_detail_shows_manual_delivery_confirmation(): void
+    {
+        [$user, $branch] = $this->userWithBranch();
+        $package = Package::factory()->forBranch($branch)->withStatus(PackageStatus::ReadyForPickup)->create();
+
+        $response = $this->actingAs($user)->get(route('packages.show', $package));
+
+        $response->assertSee('CONFIRMAR ENTREGA');
+        $response->assertSee(route('packages.deliver', $package), escape: false);
+    }
+
+    public function test_delivered_and_cancelled_package_details_hide_delivery_confirmation(): void
+    {
+        [$user, $branch] = $this->userWithBranch();
+        $deliveredPackage = Package::factory()->forBranch($branch)->withStatus(PackageStatus::Delivered)->create();
+        $cancelledPackage = Package::factory()->forBranch($branch)->withStatus(PackageStatus::Cancelled)->create();
+
+        $this->actingAs($user)
+            ->get(route('packages.show', $deliveredPackage))
+            ->assertDontSee('CONFIRMAR ENTREGA');
+        $this->actingAs($user)
+            ->get(route('packages.show', $cancelledPackage))
+            ->assertDontSee('CONFIRMAR ENTREGA');
+    }
+
+    public function test_historical_package_with_nullable_relations_renders_safely(): void
+    {
+        [$user, $branch] = $this->userWithBranch();
+        $package = Package::factory()->forBranch($branch)->create([
+            'package_category_id' => null,
+            'seller_id' => null,
+            'received_by' => null,
+            'storage_code' => null,
+            'storage_price' => null,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('packages.show', $package));
+
+        $response->assertOk();
+        $response->assertSee('Sin categoría');
+        $response->assertSee('Sin registrar');
     }
 
     /** @return array{User, Branch} */

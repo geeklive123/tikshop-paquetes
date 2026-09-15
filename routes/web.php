@@ -24,7 +24,7 @@ Route::middleware(['auth', 'active', 'sensitive'])->group(function () {
     Route::get('/pickup', [PickupController::class, 'index'])->name('pickup.scanner');
     Route::post('/pickup/resolve', [PickupController::class, 'resolve'])->name('pickup.resolve');
     Route::post('/pickup/manual', [PickupController::class, 'manual'])->name('pickup.manual');
-    Route::post('/pickup/deliver', PickupDeliveryController::class)->name('pickup.deliver');
+    Route::post('/pickup/deliver', [PickupDeliveryController::class, 'fromQr'])->name('pickup.deliver');
     Route::get('/pickup/{token}', [PickupController::class, 'show'])
         ->whereAlphaNumeric('token')
         ->name('pickup.show');
@@ -37,6 +37,8 @@ Route::middleware(['auth', 'active', 'sensitive'])->group(function () {
         ->name('packages.ticket');
     Route::get('/packages/{package}/ticket/download', PackageTicketController::class)
         ->name('packages.ticket.download');
+    Route::post('/packages/{package}/deliver', [PickupDeliveryController::class, 'manually'])
+        ->name('packages.deliver');
     Route::resource('packages', PackageController::class)->only(['index', 'create', 'store', 'show']);
 
     Route::resource('package-categories', PackageCategoryController::class)
