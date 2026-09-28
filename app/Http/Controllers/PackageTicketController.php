@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Packages\GeneratePickupQrCodeAction;
+use App\Actions\Packages\ResolveTicketLogoAction;
 use App\Models\Package;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -20,10 +21,11 @@ class PackageTicketController extends Controller
         Request $request,
         Package $package,
         GeneratePickupQrCodeAction $generatePickupQrCode,
+        ResolveTicketLogoAction $resolveTicketLogo,
     ): Response {
         Gate::authorize('view', $package);
 
-        $package->load(['branch:id,name,address', 'category:id,name']);
+        $package->load(['company:id,name', 'branch:id,name,address', 'category:id,name']);
         $activeToken = $package->pickupTokens()
             ->whereNull('used_at')
             ->whereNull('revoked_at')
@@ -53,6 +55,7 @@ class PackageTicketController extends Controller
             $pdf = Pdf::loadView('packages.ticket', [
                 'package' => $package,
                 'qrImagePath' => $qrImagePath,
+                'logoDataUri' => $resolveTicketLogo->execute(),
             ])->setPaper([0, 0, 226.77, 510.24]);
             $filename = "ticket-{$package->tracking_code}.pdf";
 

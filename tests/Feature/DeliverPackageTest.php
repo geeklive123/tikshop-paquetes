@@ -10,6 +10,7 @@ use App\Models\Company;
 use App\Models\Package;
 use App\Models\PackagePickupToken;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -48,6 +49,18 @@ class DeliverPackageTest extends TestCase
             'user_id' => $user->id,
             'event' => PackageEventType::PackageDelivered->value,
         ]);
+    }
+
+    public function test_delivery_near_midnight_keeps_the_bolivian_business_day(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-09-30 23:55:00', 'America/La_Paz'));
+        [$user, $package, $rawToken, $pickupToken] = $this->pickupContext(UserRole::Operator);
+
+        $this->actingAs($user)->post(route('pickup.deliver'), ['token' => $rawToken])->assertRedirect();
+
+        $this->assertSame('2026-09-30 23:55:00', $package->fresh()->delivered_at->format('Y-m-d H:i:s'));
+        $this->assertSame('America/La_Paz', $package->fresh()->delivered_at->timezoneName);
+        $this->assertSame('2026-09-30 23:55:00', $pickupToken->fresh()->used_at->format('Y-m-d H:i:s'));
     }
 
     public function test_other_company_cannot_confirm_delivery(): void

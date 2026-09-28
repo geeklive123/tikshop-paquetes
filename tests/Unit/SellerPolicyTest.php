@@ -41,6 +41,8 @@ class SellerPolicyTest extends TestCase
 
             $this->assertTrue($policy->viewAny($user));
             $this->assertTrue($policy->create($user));
+            $seller = new Seller(['company_id' => 1]);
+            $this->assertTrue($policy->viewAllPackages($user, $seller)->allowed());
         }
     }
 
@@ -53,5 +55,6 @@ class SellerPolicyTest extends TestCase
 
         $this->assertFalse($response->allowed());
         $this->assertSame(404, $response->status());
+        $this->assertSame(404, (new SellerPolicy)->viewAllPackages($user, $seller)->status());
     }
 }

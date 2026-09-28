@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\PackageStatus;
 use App\Enums\UserRole;
+use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Package;
 use App\Models\Seller;
@@ -136,26 +137,149 @@ class SellerManagementTest extends TestCase
         $this->assertModelExists($seller);
     }
 
-    public function test_seller_detail_shows_only_its_packages_and_summary(): void
+    public function test_seller_detail_shows_only_its_packages_and_correct_summary(): void
+    {
+        $company = Company::factory()->create();
+        $owner = User::factory()->for($company)->withRole(UserRole::Owner)->create();
+        $seller = Seller::factory()->for($company)->create();
+        $otherSeller = Seller::factory()->for($company)->create();
+        Package::factory()->for($company)->for($seller)->withStatus(PackageStatus::Received)->create(['tracking_code' => 'TIK-260912-0001', 'recipient_name' => 'Destinatario visible', 'storage_price' => '2.50']);
+        Package::factory()->for($company)->for($seller)->withStatus(PackageStatus::ReadyForPickup)->create(['tracking_code' => 'TIK-260912-0002', 'storage_price' => '3.50']);
+        Package::factory()->for($company)->for($seller)->withStatus(PackageStatus::Delivered)->create(['tracking_code' => 'TIK-260912-0003', 'storage_price' => '4.00']);
+        Package::factory()->for($company)->for($seller)->withStatus(PackageStatus::Cancelled)->create(['tracking_code' => 'TIK-260912-0004', 'storage_price' => '5.00']);
+        Package::factory()->for($company)->for($otherSeller)->create(['tracking_code' => 'TIK-260912-0005', 'recipient_name' => 'Destinatario oculto', 'storage_price' => '100.00']);
+        $otherCompanyPackage = Package::factory()->forSeller(Seller::factory()->create())->create([
+            'tracking_code' => 'TIK-260912-0006',
+            'recipient_name' => 'Otra empresa oculta',
+            'storage_price' => '200.00',
+        ]);
+
+        $response = $this->actingAs($owner)->get(route('sellers.show', $seller));
+
+        $response->assertSee('TIK-260912-0001');
+        $response->assertSee('TIK-260912-0002');
+        $response->assertSee('TIK-260912-0003');
+        $response->assertSee('TIK-260912-0004');
+        $response->assertSee('Destinatario visible');
+        $response->assertDontSee('TIK-260912-0005');
+        $response->assertDontSee($otherCompanyPackage->tracking_code);
+        $response->assertDontSee('Destinatario oculto');
+        $response->assertDontSee('Otra empresa oculta');
+        $response->assertSee('Bs 15.00');
+        $response->assertSee('No representa una comisión calculada.');
+        $response->assertViewHas('metrics', fn (object $metrics): bool => (int) $metrics->total_packages === 4
+            && (int) $metrics->pending_packages === 2
+            && (int) $metrics->delivered_packages === 1
+            && (int) $metrics->cancelled_packages === 1
+            && (float) $metrics->storage_amount === 15.0);
+    }
+
+    public function test_owner_sees_seller_packages_paginated(): void
+    {
+        $company = Company::factory()->create();
+        $owner = User::factory()->for($company)->withRole(UserRole::Owner)->create();
+        $seller = Seller::factory()->for($company)->create();
+        Package::factory()->count(16)->for($company)->for($seller)->create();
+
+        $response = $this->actingAs($owner)->get(route('sellers.show', $seller));
+
+        $response->assertViewHas('packages', fn ($packages): bool => $packages->count() === 15
+            && $packages->total() === 16
+            && $packages->hasMorePages());
+        $response->assertSee('Todos los paquetes');
+    }
+
+    public function test_seller_package_filters_apply_status_dates_and_search(): void
+    {
+        $company = Company::factory()->create();
+        $admin = User::factory()->for($company)->withRole(UserRole::Admin)->create();
+        $seller = Seller::factory()->for($company)->create();
+        Package::factory()->for($company)->for($seller)->withStatus(PackageStatus::Delivered)->create([
+            'tracking_code' => 'TIK-FILTRO-001',
+            'recipient_name' => 'Ana Visible',
+            'received_at' => '2026-09-10 10:00:00',
+        ]);
+        Package::factory()->for($company)->for($seller)->withStatus(PackageStatus::Delivered)->create([
+            'tracking_code' => 'TIK-FILTRO-002',
+            'recipient_name' => 'Ana Fuera de Fecha',
+            'received_at' => '2026-08-10 10:00:00',
+        ]);
+        Package::factory()->for($company)->for($seller)->withStatus(PackageStatus::Received)->create([
+            'tracking_code' => 'TIK-FILTRO-003',
+            'recipient_name' => 'Ana Estado Distinto',
+            'received_at' => '2026-09-10 10:00:00',
+        ]);
+        Package::factory()->for($company)->for($seller)->withStatus(PackageStatus::Delivered)->create([
+            'tracking_code' => 'TIK-FILTRO-004',
+            'recipient_name' => 'Otra Persona',
+            'received_at' => '2026-09-10 10:00:00',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('sellers.show', [
+            'seller' => $seller,
+            'status' => PackageStatus::Delivered->value,
+            'date_from' => '2026-09-01',
+            'date_to' => '2026-09-30',
+            'search' => 'Ana',
+        ]));
+
+        $response->assertSee('TIK-FILTRO-001');
+        $response->assertDontSee('TIK-FILTRO-002');
+        $response->assertDontSee('TIK-FILTRO-003');
+        $response->assertDontSee('TIK-FILTRO-004');
+        $response->assertViewHas('packages', fn ($packages): bool => $packages->total() === 1);
+    }
+
+    public function test_operator_sees_more_than_ten_seller_packages_with_the_full_paginated_table(): void
     {
         $company = Company::factory()->create();
         $operator = User::factory()->for($company)->withRole(UserRole::Operator)->create();
         $seller = Seller::factory()->for($company)->create();
-        $otherSeller = Seller::factory()->for($company)->create();
-        Package::factory()->for($company)->for($seller)->withStatus(PackageStatus::Received)->create(['tracking_code' => 'TIK-260912-0001', 'recipient_name' => 'Destinatario visible']);
-        Package::factory()->for($company)->for($seller)->withStatus(PackageStatus::Delivered)->create(['tracking_code' => 'TIK-260912-0002']);
-        Package::factory()->for($company)->for($otherSeller)->create(['tracking_code' => 'TIK-260912-0003', 'recipient_name' => 'Destinatario oculto']);
+        Package::factory()->count(16)->for($company)->for($seller)->create();
 
         $response = $this->actingAs($operator)->get(route('sellers.show', $seller));
 
-        $response->assertSee('TIK-260912-0001');
-        $response->assertSee('TIK-260912-0002');
-        $response->assertSee('Destinatario visible');
-        $response->assertDontSee('TIK-260912-0003');
-        $response->assertDontSee('Destinatario oculto');
-        $response->assertViewHas('seller', fn (Seller $viewSeller): bool => $viewSeller->packages_count === 2
-            && $viewSeller->pending_packages_count === 1
-            && $viewSeller->delivered_packages_count === 1);
+        $response->assertViewHas('packages', fn ($packages): bool => $packages->count() === 15
+            && $packages->total() === 16
+            && $packages->hasMorePages());
+        $response->assertSee('Todos los paquetes');
+        $response->assertSee('Monto total asociado a paquetes');
+        $response->assertSee('Fecha desde');
+    }
+
+    public function test_operator_can_navigate_to_the_second_seller_package_page(): void
+    {
+        $company = Company::factory()->create();
+        $operator = User::factory()->for($company)->withRole(UserRole::Operator)->create();
+        $seller = Seller::factory()->for($company)->create();
+        Package::factory()->count(16)->for($company)->for($seller)->create();
+
+        $response = $this->actingAs($operator)->get(route('sellers.show', ['seller' => $seller, 'page' => 2]));
+
+        $response->assertViewHas('packages', fn ($packages): bool => $packages->currentPage() === 2
+            && $packages->count() === 1
+            && $packages->total() === 16);
+    }
+
+    public function test_operator_does_not_see_seller_package_row_from_another_company(): void
+    {
+        $company = Company::factory()->create();
+        $operator = User::factory()->for($company)->withRole(UserRole::Operator)->create();
+        $seller = Seller::factory()->for($company)->create();
+        Package::factory()->for($company)->for($seller)->create([
+            'tracking_code' => 'TIK-PROPIO-001',
+        ]);
+        $otherCompany = Company::factory()->create();
+        $otherBranch = Branch::factory()->for($otherCompany)->create();
+        Package::factory()->forBranch($otherBranch)->create([
+            'seller_id' => $seller->id,
+            'tracking_code' => 'TIK-OTRA-CIA01',
+        ]);
+
+        $response = $this->actingAs($operator)->get(route('sellers.show', $seller));
+
+        $response->assertSee('TIK-PROPIO-001');
+        $response->assertDontSee('TIK-OTRA-CIA01');
     }
 
     /** @return array<string, string> */

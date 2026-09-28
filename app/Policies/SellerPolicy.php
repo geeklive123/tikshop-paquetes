@@ -60,6 +60,11 @@ class SellerPolicy
         return $this->update($user, $seller);
     }
 
+    public function viewAllPackages(User $user, Seller $seller): Response
+    {
+        return $this->view($user, $seller);
+    }
+
     /**
      * Determine whether the user can delete the model.
      */

@@ -9,8 +9,12 @@
     <div class="py-8">
         <div class="mx-auto max-w-5xl space-y-6 px-4 sm:px-6 lg:px-8">
             @if (session('status'))
-                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-tik-red-dark">{{ session('status') }}</div>
+                <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">{{ session('status') }}</div>
             @endif
+            <x-input-error :messages="$errors->get('printer')" />
+            <x-input-error :messages="$errors->get('print_job')" />
+            <x-input-error :messages="$errors->get('package')" />
+            <x-input-error :messages="$errors->get('reason')" />
 
             <section class="rounded-2xl border border-gray-200 border-l-4 border-l-tik-red bg-white p-5 shadow-sm sm:p-6">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -25,6 +29,14 @@
                     <div><dt class="text-sm font-medium text-gray-500">Código / ubicación</dt><dd class="mt-1 font-mono text-sm font-bold text-tik-ink">{{ $package->storage_code ?? 'Sin registrar' }}</dd></div>
                     <div><dt class="text-sm font-medium text-gray-500">Costo de almacenaje</dt><dd class="mt-1 text-sm font-bold text-tik-red-dark">{{ $package->storage_price === null ? 'Sin registrar' : 'Bs '.number_format((float) $package->storage_price, 2) }}</dd></div>
                 </dl>
+
+                @if ($package->status === \App\Enums\PackageStatus::Cancelled)
+                    <div class="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+                        <p class="font-bold">Paquete anulado</p>
+                        <p class="mt-1"><span class="font-semibold">Motivo:</span> {{ $package->cancellation_reason ?: 'Sin motivo registrado' }}</p>
+                        <p class="mt-1 text-xs text-red-700">{{ $package->cancelled_at?->format('d/m/Y H:i') }} · {{ $package->cancelledBy?->name ?? 'Usuario no disponible' }}</p>
+                    </div>
+                @endif
 
                 @if ($package->status === \App\Enums\PackageStatus::ReadyForPickup)
                     @can('deliver', $package)
@@ -44,10 +56,38 @@
                         </form>
                     @endcan
                 @endif
-                <div class="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row">
-                    <a href="{{ route('packages.ticket', $package) }}" target="_blank" class="inline-flex items-center justify-center rounded-xl bg-tik-red px-5 py-3 text-sm font-semibold text-white hover:bg-tik-red-dark">Ver ticket PDF</a>
-                    <a href="{{ route('packages.ticket.download', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-tik-red px-5 py-3 text-sm font-semibold text-tik-red-dark hover:bg-red-50">Descargar ticket PDF</a>
+                <div class="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:flex-wrap">
+                    @can('update', $package)
+                        <a href="{{ route('packages.edit', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Editar paquete</a>
+                    @endcan
+                    @if (! in_array($package->status, [\App\Enums\PackageStatus::Delivered, \App\Enums\PackageStatus::Cancelled], true))
+                        @if ($defaultPrinter)
+                            <form method="POST" action="{{ route('packages.print-ticket', $package) }}">
+                                @csrf
+                                <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl bg-tik-red px-5 py-3 text-sm font-semibold text-white hover:bg-tik-red-dark">Imprimir ticket</button>
+                            </form>
+                        @endif
+                        <a href="{{ route('packages.ticket', $package) }}" target="_blank" class="inline-flex items-center justify-center rounded-xl border border-tik-red px-5 py-3 text-sm font-semibold text-tik-red-dark hover:bg-red-50">Ver PDF</a>
+                        <a href="{{ route('packages.ticket.download', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Descargar</a>
+                    @endif
                 </div>
+                @if ($defaultPrinter && ! in_array($package->status, [\App\Enums\PackageStatus::Delivered, \App\Enums\PackageStatus::Cancelled], true))
+                    <p class="mt-2 text-xs text-gray-500">Crea un trabajo para {{ $defaultPrinter->name }}. El agente local lo procesará; esta pantalla no imprime directamente.</p>
+                @endif
+                @can('cancel', $package)
+                    <details class="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
+                        <summary class="cursor-pointer text-sm font-bold text-red-800">Anular paquete</summary>
+                        <div class="mt-3 text-sm text-red-800">Esta acción impide la entrega, invalida el QR activo y conserva el paquete para auditoría.</div>
+                        <form method="POST" action="{{ route('packages.cancel', $package) }}" class="mt-4 space-y-3" onsubmit="return confirm('¿Confirmas que deseas anular este paquete? Esta acción no se puede deshacer.');">
+                            @csrf
+                            <div>
+                                <x-input-label for="reason" value="Motivo de anulación" />
+                                <textarea id="reason" name="reason" rows="3" maxlength="1000" class="mt-1.5 block w-full rounded-lg border-red-300 text-sm shadow-sm focus:border-red-500 focus:ring-red-500" required>{{ old('reason') }}</textarea>
+                            </div>
+                            <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl bg-red-700 px-5 py-3 text-sm font-bold text-white hover:bg-red-800 sm:w-auto">Confirmar anulación</button>
+                        </form>
+                    </details>
+                @endcan
             </section>
 
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">

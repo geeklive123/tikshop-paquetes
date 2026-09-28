@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Actions\Packages\CreatePackageAction;
 use App\Actions\Packages\GeneratePickupQrCodeAction;
 use App\Actions\Packages\GeneratePickupTokenAction;
+use App\Actions\Packages\UpdatePackageAction;
 use App\Enums\PackageStatus;
 use App\Http\Requests\Packages\StorePackageRequest;
+use App\Http\Requests\Packages\UpdatePackageRequest;
 use App\Models\Package;
 use App\Models\PackageCategory;
+use App\Models\Printer;
 use App\Models\Seller;
 use App\Models\User;
 use Illuminate\Contracts\Encryption\DecryptException;
@@ -137,9 +140,70 @@ class PackageController extends Controller
     {
         Gate::authorize('view', $package);
 
-        $package->load(['branch:id,name', 'category:id,name', 'receivedBy:id,name', 'seller:id,ulid,name,business_name']);
+        $package->load(['branch:id,name', 'category:id,name', 'receivedBy:id,name', 'cancelledBy:id,name', 'seller:id,ulid,name,business_name']);
+        $defaultPrinter = Printer::query()
+            ->where('company_id', $package->company_id)
+            ->where('branch_id', $package->branch_id)
+            ->where('active', true)
+            ->where('is_default', true)
+            ->first();
 
-        return view('packages.show', ['package' => $package]);
+        return view('packages.show', [
+            'package' => $package,
+            'defaultPrinter' => $defaultPrinter,
+        ]);
+    }
+
+    public function edit(Request $request, Package $package): View
+    {
+        Gate::authorize('update', $package);
+
+        /** @var User $user */
+        $user = $request->user();
+        $categories = PackageCategory::query()
+            ->whereBelongsTo($user->company)
+            ->where(fn ($query) => $query
+                ->where('active', true)
+                ->orWhereKey($package->package_category_id))
+            ->orderBy('code_start')
+            ->orderBy('name')
+            ->get();
+        $sellers = Seller::query()
+            ->whereBelongsTo($user->company)
+            ->where(fn ($query) => $query
+                ->where('active', true)
+                ->orWhereKey($package->seller_id))
+            ->orderBy('name')
+            ->orderBy('id')
+            ->get(['id', 'name', 'business_name', 'phone', 'active']);
+
+        return view('packages.edit', [
+            'package' => $package,
+            'categories' => $categories,
+            'sellers' => $sellers,
+        ]);
+    }
+
+    public function update(
+        UpdatePackageRequest $request,
+        Package $package,
+        UpdatePackageAction $updatePackage,
+    ): RedirectResponse {
+        /** @var User $user */
+        $user = $request->user();
+        $package = $updatePackage->execute($user, $package, $request->safe()->only([
+            'seller_id',
+            'package_category_id',
+            'storage_code',
+            'recipient_name',
+            'recipient_phone',
+            'description',
+            'notes',
+        ]));
+
+        return redirect()
+            ->route('packages.show', $package)
+            ->with('status', 'Paquete actualizado correctamente.');
     }
 
     private function pickupTokenFromSession(Request $request): ?string

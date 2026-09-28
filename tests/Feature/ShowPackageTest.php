@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\PackageStatus;
+use App\Enums\UserRole;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Package;
@@ -126,6 +127,31 @@ class ShowPackageTest extends TestCase
         $response->assertOk();
         $response->assertSee('Sin categoría');
         $response->assertSee('Sin registrar');
+    }
+
+    public function test_owner_sees_edit_and_cancel_actions_for_open_package(): void
+    {
+        [$user, $branch] = $this->userWithBranch();
+        $user->update(['role' => UserRole::Owner]);
+        $package = Package::factory()->forBranch($branch)->withStatus(PackageStatus::ReadyForPickup)->create();
+
+        $response = $this->actingAs($user)->get(route('packages.show', $package));
+
+        $response->assertSee('Editar paquete');
+        $response->assertSee('Anular paquete');
+        $response->assertSee(route('packages.edit', $package), false);
+        $response->assertSee(route('packages.cancel', $package), false);
+    }
+
+    public function test_operator_does_not_see_edit_or_cancel_actions(): void
+    {
+        [$user, $branch] = $this->userWithBranch();
+        $package = Package::factory()->forBranch($branch)->withStatus(PackageStatus::ReadyForPickup)->create();
+
+        $response = $this->actingAs($user)->get(route('packages.show', $package));
+
+        $response->assertDontSee('Editar paquete');
+        $response->assertDontSee('Anular paquete');
     }
 
     /** @return array{User, Branch} */

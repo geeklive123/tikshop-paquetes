@@ -34,6 +34,12 @@ class User extends Authenticatable
         return $this->hasMany(PackageEvent::class);
     }
 
+    /** @return HasMany<PrintJob, $this> */
+    public function requestedPrintJobs(): HasMany
+    {
+        return $this->hasMany(PrintJob::class, 'requested_by');
+    }
+
     /**
      * Get the attributes that should be cast.
      *

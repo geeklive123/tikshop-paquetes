@@ -31,8 +31,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'ready_at',
     'delivered_at',
     'cancelled_at',
+    'cancellation_reason',
     'received_by',
     'delivered_by',
+    'cancelled_by',
 ])]
 class Package extends Model
 {
@@ -86,6 +88,12 @@ class Package extends Model
         return $this->belongsTo(User::class, 'delivered_by');
     }
 
+    /** @return BelongsTo<User, $this> */
+    public function cancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
+    }
+
     /** @return HasMany<PackagePickupToken, $this> */
     public function pickupTokens(): HasMany
     {
@@ -96,6 +104,12 @@ class Package extends Model
     public function events(): HasMany
     {
         return $this->hasMany(PackageEvent::class);
+    }
+
+    /** @return HasMany<PrintJob, $this> */
+    public function printJobs(): HasMany
+    {
+        return $this->hasMany(PrintJob::class);
     }
 
     /**

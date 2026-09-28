@@ -62,6 +62,24 @@ class Company extends Model
         return $this->hasMany(Seller::class);
     }
 
+    /** @return HasMany<Printer, $this> */
+    public function printers(): HasMany
+    {
+        return $this->hasMany(Printer::class);
+    }
+
+    /** @return HasMany<PrinterAgent, $this> */
+    public function printerAgents(): HasMany
+    {
+        return $this->hasMany(PrinterAgent::class);
+    }
+
+    /** @return HasMany<PrintJob, $this> */
+    public function printJobs(): HasMany
+    {
+        return $this->hasMany(PrintJob::class);
+    }
+
     /**
      * @return array<string, string>
      */

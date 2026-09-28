@@ -25,6 +25,12 @@
                 Vendedores
             </a>
         @endcan
+        @can('viewReports')
+            <a href="{{ route('reports.index') }}" @click="sidebarOpen = false" @class(['flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition', 'bg-tik-red text-white shadow-sm shadow-black/30' => request()->routeIs('reports.*'), 'text-gray-300 hover:bg-white/10 hover:text-white' => ! request()->routeIs('reports.*')])>
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 19V9m5 10V5m5 14v-7m5 7V3M2 21h20" /></svg>
+                Reportes
+            </a>
+        @endcan
         <a href="{{ route('pickup.scanner') }}" @click="sidebarOpen = false" @class(['flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition', 'bg-tik-red text-white shadow-sm shadow-black/30' => request()->routeIs('pickup.*'), 'text-gray-300 hover:bg-white/10 hover:text-white' => ! request()->routeIs('pickup.*')])>
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 7V4h3m10 0h3v3m0 10v3h-3M7 20H4v-3M7 8h2v2H7V8Zm8 0h2v2h-2V8ZM7 14h2v2H7v-2Zm7 0h3v3h-3v-3Zm-3-3h2v2h-2v-2Z" /></svg>
             Escanear QR
@@ -33,6 +39,18 @@
             <a href="{{ route('package-categories.index') }}" @click="sidebarOpen = false" @class(['flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition', 'bg-tik-red text-white shadow-sm shadow-black/30' => request()->routeIs('package-categories.*'), 'text-gray-300 hover:bg-white/10 hover:text-white' => ! request()->routeIs('package-categories.*')])>
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 6h16M4 12h16M4 18h10" /></svg>
                 Categorías
+            </a>
+        @endcan
+        @can('viewAny', \App\Models\Printer::class)
+            <a href="{{ route('printers.index') }}" @click="sidebarOpen = false" @class(['flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition', 'bg-tik-red text-white shadow-sm shadow-black/30' => request()->routeIs('printers.*'), 'text-gray-300 hover:bg-white/10 hover:text-white' => ! request()->routeIs('printers.*')])>
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M6 9V3h12v6M6 18h12v3H6v-3Zm-2-9h16a2 2 0 0 1 2 2v6h-4v-3H6v3H2v-6a2 2 0 0 1 2-2Z" /></svg>
+                Impresoras
+            </a>
+        @endcan
+        @can('viewAny', \App\Models\PrintJob::class)
+            <a href="{{ route('print-jobs.index') }}" @click="sidebarOpen = false" @class(['flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition', 'bg-tik-red text-white shadow-sm shadow-black/30' => request()->routeIs('print-jobs.*', 'printer-agents.*'), 'text-gray-300 hover:bg-white/10 hover:text-white' => ! request()->routeIs('print-jobs.*', 'printer-agents.*')])>
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M6 9V3h12v6M6 18h12v3H6v-3Zm-2-9h16a2 2 0 0 1 2 2v6h-4v-3H6v3H2v-6a2 2 0 0 1 2-2Z" /></svg>
+                Impresiones
             </a>
         @endcan
         @if (Auth::user()->role->canManageUsers())

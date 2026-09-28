@@ -8,12 +8,14 @@ use App\Enums\PackageStatus;
 use App\Enums\SellerDocumentType;
 use App\Http\Requests\Sellers\StoreSellerRequest;
 use App\Http\Requests\Sellers\UpdateSellerRequest;
+use App\Models\Package;
 use App\Models\Seller;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class SellerController extends Controller
@@ -91,25 +93,61 @@ class SellerController extends Controller
     public function show(Request $request, Seller $seller): View
     {
         Gate::authorize('view', $seller);
+        Gate::authorize('viewAllPackages', $seller);
 
         /** @var User $user */
         $user = $request->user();
-        $seller->loadCount([
-            'packages',
-            'packages as pending_packages_count' => fn (Builder $query): Builder => $query->whereIn('status', [
-                PackageStatus::Received,
-                PackageStatus::ReadyForPickup,
-            ]),
-            'packages as delivered_packages_count' => fn (Builder $query): Builder => $query->where('status', PackageStatus::Delivered),
+        $request->validate([
+            'status' => ['nullable', Rule::enum(PackageStatus::class)],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'search' => ['nullable', 'string', 'max:150'],
         ]);
-        $recentPackages = $seller->packages()
+        $selectedStatus = PackageStatus::tryFrom($request->string('status')->toString());
+        $dateFrom = $request->string('date_from')->toString();
+        $dateTo = $request->string('date_to')->toString();
+        $search = $request->string('search')->trim()->toString();
+        $metrics = Package::query()
             ->where('company_id', $user->company_id)
-            ->orderByDesc('received_at')
-            ->orderByDesc('id')
-            ->limit(10)
-            ->get();
+            ->where('seller_id', $seller->id)
+            ->toBase()
+            ->selectRaw('COUNT(*) as total_packages')
+            ->selectRaw('SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END) as pending_packages', [
+                PackageStatus::Received->value,
+                PackageStatus::ReadyForPickup->value,
+            ])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as delivered_packages', [PackageStatus::Delivered->value])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as cancelled_packages', [PackageStatus::Cancelled->value])
+            ->selectRaw('COALESCE(SUM(storage_price), 0) as storage_amount')
+            ->first();
 
-        return view('sellers.show', ['seller' => $seller, 'recentPackages' => $recentPackages]);
+        $packagesQuery = $seller->packages()
+            ->where('company_id', $user->company_id)
+            ->with('category:id,name')
+            ->orderByDesc('received_at')
+            ->orderByDesc('id');
+
+        $packages = $packagesQuery
+            ->withStatus($selectedStatus)
+            ->when($dateFrom !== '', fn (Builder $query): Builder => $query->whereDate('received_at', '>=', $dateFrom))
+            ->when($dateTo !== '', fn (Builder $query): Builder => $query->whereDate('received_at', '<=', $dateTo))
+            ->when($search !== '', fn (Builder $query): Builder => $query->where(function (Builder $query) use ($search): void {
+                $query->where('tracking_code', 'like', "%{$search}%")
+                    ->orWhere('recipient_name', 'like', "%{$search}%");
+            }))
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('sellers.show', [
+            'seller' => $seller,
+            'metrics' => $metrics,
+            'packages' => $packages,
+            'statuses' => PackageStatus::cases(),
+            'selectedStatus' => $selectedStatus,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'search' => $search,
+        ]);
     }
 
     /**

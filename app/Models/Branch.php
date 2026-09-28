@@ -43,6 +43,31 @@ class Branch extends Model
         return $this->hasMany(Package::class);
     }
 
+    /** @return HasMany<Printer, $this> */
+    public function printers(): HasMany
+    {
+        return $this->hasMany(Printer::class);
+    }
+
+    /** @return HasMany<PrinterAgent, $this> */
+    public function printerAgents(): HasMany
+    {
+        return $this->hasMany(PrinterAgent::class);
+    }
+
+    /** @return HasMany<PrintJob, $this> */
+    public function printJobs(): HasMany
+    {
+        return $this->hasMany(PrintJob::class);
+    }
+
+    public function ticketAddress(): string
+    {
+        return filled($this->address)
+            ? $this->address
+            : (string) config('tickets.fallback_address');
+    }
+
     /**
      * @return array<string, string>
      */

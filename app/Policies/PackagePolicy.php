@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\PackageStatus;
 use App\Enums\UserRole;
 use App\Models\Package;
 use App\Models\User;
@@ -55,6 +56,33 @@ class PackagePolicy
     public function deliver(User $user, Package $package): Response
     {
         return $this->view($user, $package);
+    }
+
+    public function update(User $user, Package $package): Response
+    {
+        return $this->manage($user, $package);
+    }
+
+    public function cancel(User $user, Package $package): Response
+    {
+        return $this->manage($user, $package);
+    }
+
+    private function manage(User $user, Package $package): Response
+    {
+        $viewResponse = $this->view($user, $package);
+
+        if (! $viewResponse->allowed()) {
+            return $viewResponse;
+        }
+
+        if (in_array($package->status, [PackageStatus::Delivered, PackageStatus::Cancelled], true)) {
+            return Response::deny();
+        }
+
+        return in_array($user->role, [UserRole::Owner, UserRole::Admin], true)
+            ? Response::allow()
+            : Response::deny();
     }
 
     private function hasPackageAccess(User $user): bool

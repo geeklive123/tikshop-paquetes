@@ -8,7 +8,9 @@
         * { box-sizing: border-box; }
         body { margin: 0; color: #171717; font-family: DejaVu Sans, sans-serif; font-size: 10px; }
         .center { text-align: center; }
-        .brand { color: #e5252a; font-size: 22px; font-weight: bold; letter-spacing: .5px; }
+        .logo { display: block; width: 38mm; height: auto; margin: 0 auto 4px; }
+        .brand { color: #171717; font-size: 20px; font-weight: bold; letter-spacing: .5px; }
+        .company { font-size: 11px; font-weight: bold; }
         .muted { color: #666; }
         .tracking { margin: 7px 0 2px; font-family: DejaVu Sans Mono, monospace; font-size: 15px; font-weight: bold; }
         .divider { margin: 9px 0; border-top: 1px dashed #888; }
@@ -26,9 +28,14 @@
 </head>
 <body>
     <div class="center">
-        <div class="brand">TIK SHOP</div>
+        @if (! empty($logoDataUri))
+            <img class="logo" src="{{ $logoDataUri }}" alt="Tik Shop">
+        @else
+            <div class="brand">Tik Shop</div>
+        @endif
+        <div class="company">{{ $package->company->name }}</div>
         <div>{{ $package->branch->name }}</div>
-        @if ($package->branch->address)<div class="muted">{{ $package->branch->address }}</div>@endif
+        <div class="muted">{{ $package->branch->ticketAddress() }}</div>
         <div class="tracking">{{ $package->tracking_code }}</div>
         <div class="muted">{{ $package->received_at?->format('d/m/Y H:i') }}</div>
     </div>
