@@ -27,6 +27,7 @@
                             <dl class="grid grid-cols-2 gap-4 text-sm">
                                 <div><dt class="text-gray-500">Rango</dt><dd class="mt-1 font-mono font-bold text-tik-ink">{{ $category->codeRange() }}</dd></div>
                                 <div><dt class="text-gray-500">Precio</dt><dd class="mt-1 font-bold text-tik-red-dark">Bs {{ number_format((float) $category->price, 2) }}</dd></div>
+                                <div class="col-span-2"><dt class="text-gray-500">Comisión por entrega</dt><dd class="mt-1 font-bold text-tik-ink">{{ $category->commission_rate === null ? 'Sin configurar' : 'Bs '.number_format((float) $category->commission_rate, 2) }}</dd></div>
                             </dl>
                             <a href="{{ route('package-categories.edit', $category) }}" class="inline-flex w-full items-center justify-center rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">Editar</a>
                         </div>

@@ -6,6 +6,9 @@
                 <h1 class="mt-1 text-2xl font-bold tracking-tight text-tik-ink">{{ $seller->name }}</h1>
             </div>
             <div class="flex flex-wrap gap-3">
+                @can('viewCommissions', $seller)
+                    <a href="{{ route('sellers.commissions.index', $seller) }}" class="rounded-xl bg-tik-ink px-4 py-2.5 text-sm font-semibold text-white hover:bg-black">Comisiones</a>
+                @endcan
                 @can('update', $seller)
                     <a href="{{ route('sellers.edit', $seller) }}" class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-white">Editar</a>
                 @endcan

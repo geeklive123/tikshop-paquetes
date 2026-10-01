@@ -23,6 +23,7 @@ class PackageCategoryManagementTest extends TestCase
         $response->assertRedirect(route('package-categories.edit', $category));
         $this->assertSame($owner->company_id, $category->company_id);
         $this->assertSame('3.00', $category->price);
+        $this->assertSame('0.70', $category->commission_rate);
     }
 
     public function test_admin_can_update_category(): void
@@ -70,6 +71,7 @@ class PackageCategoryManagementTest extends TestCase
             'code_start' => '1',
             'code_end' => '10',
             'price' => '3.00',
+            'commission_rate' => '0.70',
             'color' => '#F59E0B',
             'active' => '1',
         ];

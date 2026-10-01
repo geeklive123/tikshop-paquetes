@@ -65,6 +65,29 @@ class SellerPolicy
         return $this->view($user, $seller);
     }
 
+    public function viewCommissions(User $user, Seller $seller): Response
+    {
+        return $this->view($user, $seller);
+    }
+
+    public function calculateCommission(User $user, Seller $seller): Response
+    {
+        $viewResponse = $this->view($user, $seller);
+
+        if (! $viewResponse->allowed()) {
+            return $viewResponse;
+        }
+
+        return in_array($user->role, [UserRole::Owner, UserRole::Admin], true)
+            ? Response::allow()
+            : Response::deny();
+    }
+
+    public function settleCommission(User $user, Seller $seller): Response
+    {
+        return $this->calculateCommission($user, $seller);
+    }
+
     /**
      * Determine whether the user can delete the model.
      */

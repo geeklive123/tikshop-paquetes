@@ -4,6 +4,7 @@
         ['route' => 'reports.packages.index', 'label' => 'Paquetes'],
         ['route' => 'reports.sellers.index', 'label' => 'Vendedores'],
         ['route' => 'reports.cancellations.index', 'label' => 'Anulados'],
+        ['route' => 'reports.commissions.index', 'label' => 'Comisiones pagadas'],
     ] as $tab)
         <a href="{{ route($tab['route']) }}" @class([
             'rounded-xl px-4 py-2 text-sm font-semibold transition',

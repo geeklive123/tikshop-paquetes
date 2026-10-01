@@ -80,6 +80,12 @@ class Company extends Model
         return $this->hasMany(PrintJob::class);
     }
 
+    /** @return HasMany<SellerCommissionSettlement, $this> */
+    public function sellerCommissionSettlements(): HasMany
+    {
+        return $this->hasMany(SellerCommissionSettlement::class);
+    }
+
     /**
      * @return array<string, string>
      */

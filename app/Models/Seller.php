@@ -41,6 +41,12 @@ class Seller extends Model
         return $this->hasMany(Package::class);
     }
 
+    /** @return HasMany<SellerCommissionSettlement, $this> */
+    public function sellerCommissionSettlements(): HasMany
+    {
+        return $this->hasMany(SellerCommissionSettlement::class);
+    }
+
     /**
      * @param  Builder<Seller>  $query
      * @return Builder<Seller>

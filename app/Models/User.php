@@ -40,6 +40,12 @@ class User extends Authenticatable
         return $this->hasMany(PrintJob::class, 'requested_by');
     }
 
+    /** @return HasMany<SellerCommissionSettlement, $this> */
+    public function paidCommissionSettlements(): HasMany
+    {
+        return $this->hasMany(SellerCommissionSettlement::class, 'paid_by');
+    }
+
     /**
      * Get the attributes that should be cast.
      *

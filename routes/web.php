@@ -5,10 +5,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PackageCancellationController;
 use App\Http\Controllers\PackageCategoryController;
 use App\Http\Controllers\PackageController;
+use App\Http\Controllers\PackagePickupQrImageController;
 use App\Http\Controllers\PackagePickupTokenController;
 use App\Http\Controllers\PackagePrintJobController;
 use App\Http\Controllers\PackageReportController;
 use App\Http\Controllers\PackageTicketController;
+use App\Http\Controllers\PaidCommissionReportController;
 use App\Http\Controllers\PickupController;
 use App\Http\Controllers\PickupDeliveryController;
 use App\Http\Controllers\PrinterAgentController;
@@ -22,6 +24,8 @@ use App\Http\Controllers\PrintJobController;
 use App\Http\Controllers\PrintJobRetryController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SellerCommissionController;
+use App\Http\Controllers\SellerCommissionSettlementController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\SellerReportController;
 use App\Http\Controllers\SellerStatusController;
@@ -48,6 +52,8 @@ Route::middleware(['auth', 'active', 'sensitive'])->group(function () {
         ->name('packages.success');
     Route::post('/packages/{package}/pickup-token', PackagePickupTokenController::class)
         ->name('packages.regenerate-qr');
+    Route::get('/packages/{package}/pickup-qr.png', PackagePickupQrImageController::class)
+        ->name('packages.pickup-qr.download');
     Route::get('/packages/{package}/ticket', PackageTicketController::class)
         ->name('packages.ticket');
     Route::get('/packages/{package}/ticket/download', PackageTicketController::class)
@@ -79,6 +85,12 @@ Route::middleware(['auth', 'active', 'sensitive'])->group(function () {
     Route::patch('/printer-agents/{printerAgent}/status', PrinterAgentStatusController::class)->name('printer-agents.status');
 
     Route::patch('/sellers/{seller}/status', SellerStatusController::class)->name('sellers.status.update');
+    Route::get('/sellers/{seller}/commissions', [SellerCommissionController::class, 'index'])->name('sellers.commissions.index');
+    Route::get('/sellers/{seller}/commissions/calculate', [SellerCommissionController::class, 'calculate'])->name('sellers.commissions.calculate');
+    Route::post('/sellers/{seller}/commission-settlements', [SellerCommissionSettlementController::class, 'store'])->name('sellers.commission-settlements.store');
+    Route::get('/sellers/{seller}/commission-settlements/{sellerCommissionSettlement}', [SellerCommissionSettlementController::class, 'show'])
+        ->scopeBindings()
+        ->name('sellers.commission-settlements.show');
     Route::resource('sellers', SellerController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);
 
     Route::get('/reports', ReportController::class)->name('reports.index');
@@ -86,6 +98,7 @@ Route::middleware(['auth', 'active', 'sensitive'])->group(function () {
     Route::get('/reports/sellers', [SellerReportController::class, 'index'])->name('reports.sellers.index');
     Route::get('/reports/sellers/{seller}', [SellerReportController::class, 'show'])->name('reports.sellers.show');
     Route::get('/reports/cancellations', [CancellationReportController::class, 'index'])->name('reports.cancellations.index');
+    Route::get('/reports/commissions', PaidCommissionReportController::class)->name('reports.commissions.index');
 
     Route::patch('/users/{user}/status', UserStatusController::class)->name('users.status.update');
     Route::resource('users', UserController::class)->only(['index', 'create', 'store', 'edit', 'update']);

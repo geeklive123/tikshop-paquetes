@@ -53,6 +53,11 @@ class PackagePolicy
             : Response::deny();
     }
 
+    public function sharePickupQr(User $user, Package $package): Response
+    {
+        return $this->view($user, $package);
+    }
+
     public function deliver(User $user, Package $package): Response
     {
         return $this->view($user, $package);

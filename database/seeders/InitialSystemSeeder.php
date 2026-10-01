@@ -61,14 +61,14 @@ class InitialSystemSeeder extends Seeder
         });
     }
 
-    /** @return array<int, array{name: string, code_prefix: string, code_start: int, code_end: int, price: string, color: string, active: bool}> */
+    /** @return array<int, array{name: string, code_prefix: string, code_start: int, code_end: int, price: string, commission_rate: string|null, color: string, active: bool}> */
     private function packageCategories(): array
     {
         return [
-            ['name' => 'Pequeño', 'code_prefix' => 'P', 'code_start' => 1, 'code_end' => 5, 'price' => '2.00', 'color' => '#22C55E', 'active' => true],
-            ['name' => 'Mediano', 'code_prefix' => 'M', 'code_start' => 1, 'code_end' => 10, 'price' => '3.00', 'color' => '#F59E0B', 'active' => true],
-            ['name' => 'Grande', 'code_prefix' => 'G', 'code_start' => 1, 'code_end' => 5, 'price' => '5.00', 'color' => '#F97316', 'active' => true],
-            ['name' => 'Muy Grande', 'code_prefix' => 'MG', 'code_start' => 1, 'code_end' => 5, 'price' => '7.00', 'color' => '#E5252A', 'active' => true],
+            ['name' => 'Pequeño', 'code_prefix' => 'P', 'code_start' => 1, 'code_end' => 5, 'price' => '2.00', 'commission_rate' => '0.50', 'color' => '#22C55E', 'active' => true],
+            ['name' => 'Mediano', 'code_prefix' => 'M', 'code_start' => 1, 'code_end' => 10, 'price' => '3.00', 'commission_rate' => '0.70', 'color' => '#F59E0B', 'active' => true],
+            ['name' => 'Grande', 'code_prefix' => 'G', 'code_start' => 1, 'code_end' => 5, 'price' => '5.00', 'commission_rate' => '1.00', 'color' => '#F97316', 'active' => true],
+            ['name' => 'Muy Grande', 'code_prefix' => 'MG', 'code_start' => 1, 'code_end' => 5, 'price' => '7.00', 'commission_rate' => null, 'color' => '#E5252A', 'active' => true],
         ];
     }
 }

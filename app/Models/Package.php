@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'company_id',
@@ -110,6 +111,12 @@ class Package extends Model
     public function printJobs(): HasMany
     {
         return $this->hasMany(PrintJob::class);
+    }
+
+    /** @return HasOne<SellerCommissionItem, $this> */
+    public function commissionItem(): HasOne
+    {
+        return $this->hasOne(SellerCommissionItem::class);
     }
 
     /**

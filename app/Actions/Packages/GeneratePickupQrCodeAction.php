@@ -14,21 +14,21 @@ class GeneratePickupQrCodeAction
         return (new SvgWriter)->write($this->createQrCode($url))->getDataUri();
     }
 
-    public function executePng(string $url): string
+    public function executePng(string $url, int $size = 280, int $margin = 12): string
     {
         return (new PngWriter)->write(
-            $this->createQrCode($url),
+            $this->createQrCode($url, $size, $margin),
             options: [PngWriter::WRITER_OPTION_NUMBER_OF_COLORS => null],
         )->getString();
     }
 
-    private function createQrCode(string $url): QrCode
+    private function createQrCode(string $url, int $size = 280, int $margin = 12): QrCode
     {
         return new QrCode(
             data: $url,
             errorCorrectionLevel: ErrorCorrectionLevel::Medium,
-            size: 280,
-            margin: 12,
+            size: $size,
+            margin: $margin,
         );
     }
 }

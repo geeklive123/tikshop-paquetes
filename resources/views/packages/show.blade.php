@@ -14,6 +14,7 @@
             <x-input-error :messages="$errors->get('printer')" />
             <x-input-error :messages="$errors->get('print_job')" />
             <x-input-error :messages="$errors->get('package')" />
+            <x-input-error :messages="$errors->get('pickup_qr')" />
             <x-input-error :messages="$errors->get('reason')" />
 
             <section class="rounded-2xl border border-gray-200 border-l-4 border-l-tik-red bg-white p-5 shadow-sm sm:p-6">
@@ -69,8 +70,27 @@
                         @endif
                         <a href="{{ route('packages.ticket', $package) }}" target="_blank" class="inline-flex items-center justify-center rounded-xl border border-tik-red px-5 py-3 text-sm font-semibold text-tik-red-dark hover:bg-red-50">Ver PDF</a>
                         <a href="{{ route('packages.ticket.download', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Descargar</a>
+                        @if ($hasShareablePickupQr)
+                            @can('sharePickupQr', $package)
+                                <a href="{{ route('packages.pickup-qr.download', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Descargar QR</a>
+                                <button
+                                    type="button"
+                                    data-share-pickup-qr
+                                    data-download-url="{{ route('packages.pickup-qr.download', $package) }}"
+                                    data-filename="qr-{{ $package->tracking_code }}.png"
+                                    data-whatsapp-url="{{ $whatsAppPickupShareUrl }}"
+                                    class="inline-flex items-center justify-center rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-wait disabled:opacity-60"
+                                >Compartir por WhatsApp</button>
+                            @endcan
+                        @endif
                     @endif
                 </div>
+                @if ($hasShareablePickupQr)
+                    @can('sharePickupQr', $package)
+                        <p class="mt-2 text-xs text-gray-500">En dispositivos compatibles se compartirá el archivo PNG. Si WhatsApp se abre como respaldo, adjunta manualmente la imagen descargada.</p>
+                        <div data-pickup-qr-share-status class="mt-3 hidden rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900" role="status" aria-live="polite"></div>
+                    @endcan
+                @endif
                 @if ($defaultPrinter && ! in_array($package->status, [\App\Enums\PackageStatus::Delivered, \App\Enums\PackageStatus::Cancelled], true))
                     <p class="mt-2 text-xs text-gray-500">Crea un trabajo para {{ $defaultPrinter->name }}. El agente local lo procesará; esta pantalla no imprime directamente.</p>
                 @endif

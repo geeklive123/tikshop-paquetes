@@ -20,6 +20,12 @@
         <x-input-error :messages="$errors->get('price')" class="mt-2" />
     </div>
     <div>
+        <x-input-label for="commission_rate" value="Comisión por entrega (Bs)" />
+        <x-text-input id="commission_rate" name="commission_rate" type="number" min="0" step="0.01" class="mt-1.5 block w-full" :value="old('commission_rate', $category->commission_rate)" placeholder="Sin configurar" />
+        <p class="mt-1 text-xs text-gray-500">Déjalo vacío si esta categoría todavía no tiene tarifa.</p>
+        <x-input-error :messages="$errors->get('commission_rate')" class="mt-2" />
+    </div>
+    <div>
         <x-input-label for="code_start" value="Inicio del rango" />
         <x-text-input id="code_start" name="code_start" type="number" min="1" class="mt-1.5 block w-full" :value="old('code_start', $category->code_start)" required />
         <x-input-error :messages="$errors->get('code_start')" class="mt-2" />

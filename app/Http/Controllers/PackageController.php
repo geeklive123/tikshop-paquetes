@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Packages\BuildWhatsAppPickupShareUrlAction;
 use App\Actions\Packages\CreatePackageAction;
 use App\Actions\Packages\GeneratePickupQrCodeAction;
 use App\Actions\Packages\GeneratePickupTokenAction;
@@ -136,7 +137,7 @@ class PackageController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Package $package): View
+    public function show(Package $package, BuildWhatsAppPickupShareUrlAction $buildWhatsAppPickupShareUrl): View
     {
         Gate::authorize('view', $package);
 
@@ -147,10 +148,19 @@ class PackageController extends Controller
             ->where('active', true)
             ->where('is_default', true)
             ->first();
+        $hasShareablePickupQr = ! in_array($package->status, [PackageStatus::Delivered, PackageStatus::Cancelled], true)
+            && $package->pickupTokens()
+                ->whereNull('used_at')
+                ->whereNull('revoked_at')
+                ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+                ->whereNotNull('token_encrypted')
+                ->exists();
 
         return view('packages.show', [
             'package' => $package,
             'defaultPrinter' => $defaultPrinter,
+            'hasShareablePickupQr' => $hasShareablePickupQr,
+            'whatsAppPickupShareUrl' => $buildWhatsAppPickupShareUrl->execute($package->recipient_phone),
         ]);
     }
 
