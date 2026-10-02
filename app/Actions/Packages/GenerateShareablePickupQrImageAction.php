@@ -22,11 +22,11 @@ class GenerateShareablePickupQrImageAction
         $rawToken = $this->usableRawToken($pickupToken);
         $qrPng = $this->generatePickupQrCode->executePng(
             route('pickup.show', ['token' => $rawToken]),
-            size: 320,
+            size: 560,
             margin: 12,
         );
 
-        return $this->composeImage($package->tracking_code, $qrPng);
+        return $this->composeImage($package, $qrPng);
     }
 
     private function ensurePackageCanBeShared(Package $package): void
@@ -81,9 +81,9 @@ class GenerateShareablePickupQrImageAction
         return $rawToken;
     }
 
-    private function composeImage(string $trackingCode, string $qrPng): string
+    private function composeImage(Package $package, string $qrPng): string
     {
-        $canvas = imagecreatetruecolor(450, 560);
+        $canvas = imagecreatetruecolor(900, 1120);
         $qrImage = imagecreatefromstring($qrPng);
 
         if ($canvas === false || $qrImage === false) {
@@ -95,35 +95,36 @@ class GenerateShareablePickupQrImageAction
         $gray = imagecolorallocate($canvas, 75, 85, 99);
         $red = imagecolorallocate($canvas, 242, 13, 24);
         imagefill($canvas, 0, 0, $white);
-        imagefilledrectangle($canvas, 0, 0, 450, 8, $red);
+        imagefilledrectangle($canvas, 0, 0, 900, 12, $red);
 
         $logoDrawn = $this->drawLogo($canvas);
 
         if (! $logoDrawn) {
-            $this->drawCenteredText($canvas, 'TIK SHOP', 5, 38, $red);
+            $this->drawCenteredText($canvas, 'TIK SHOP', 42, 110, $red, bold: true);
         }
 
-        $this->drawCenteredText($canvas, 'CODIGO DE SEGUIMIENTO', 3, 94, $gray);
-        $this->drawCenteredText($canvas, $trackingCode, 5, 112, $black);
-        imagecopy($canvas, $qrImage, 65, 148, 0, 0, imagesx($qrImage), imagesy($qrImage));
+        $this->drawCenteredText($canvas, 'Código:', 21, 205, $gray, bold: true);
+        $this->drawCenteredText($canvas, $package->tracking_code, 34, 244, $black, bold: true);
+        $this->drawCenteredText($canvas, 'Destinatario:', 21, 290, $gray, bold: true);
+        $this->drawCenteredText($canvas, $package->recipient_name, 32, 329, $black, bold: true);
+        $this->drawCenteredText($canvas, 'Celular:', 21, 375, $gray, bold: true);
+        $this->drawCenteredText($canvas, $package->recipient_phone, 32, 414, $black, bold: true);
+
+        $qrX = (int) floor((imagesx($canvas) - imagesx($qrImage)) / 2);
+        imagecopy($canvas, $qrImage, $qrX, 438, 0, 0, imagesx($qrImage), imagesy($qrImage));
         imagedestroy($qrImage);
-        $this->drawCenteredText($canvas, 'Presenta este QR para recoger tu', 4, 490, $black);
-        $this->drawCenteredText($canvas, 'paquete en Tik Shop.', 4, 510, $black);
+        $this->drawCenteredText(
+            $canvas,
+            'Presenta este QR para recoger tu paquete en Tik Shop.',
+            22,
+            1050,
+            $black,
+        );
 
-        $shareableImage = imagecreatetruecolor(900, 1120);
-
-        if ($shareableImage === false) {
-            imagedestroy($canvas);
-
-            throw new \RuntimeException('No se pudo crear la imagen QR compartible.');
-        }
-
-        imagecopyresized($shareableImage, $canvas, 0, 0, 0, 0, 900, 1120, 450, 560);
-        imagedestroy($canvas);
         ob_start();
-        $written = imagepng($shareableImage, null, 6);
+        $written = imagepng($canvas, null, 6);
         $png = ob_get_clean();
-        imagedestroy($shareableImage);
+        imagedestroy($canvas);
 
         if (! $written || ! is_string($png)) {
             throw new \RuntimeException('No se pudo codificar la imagen QR compartible.');
@@ -148,15 +149,44 @@ class GenerateShareablePickupQrImageAction
             return false;
         }
 
-        imagecopyresampled($canvas, $logo, 185, 16, 0, 0, 80, 80, imagesx($logo), imagesy($logo));
+        imagecopyresampled($canvas, $logo, 375, 25, 0, 0, 150, 150, imagesx($logo), imagesy($logo));
         imagedestroy($logo);
 
         return true;
     }
 
-    private function drawCenteredText(\GdImage $image, string $text, int $font, int $y, int $color): void
-    {
-        $x = max(0, (int) floor((imagesx($image) - (imagefontwidth($font) * strlen($text))) / 2));
-        imagestring($image, $font, $x, $y, $text, $color);
+    private function drawCenteredText(
+        \GdImage $image,
+        string $text,
+        float $fontSize,
+        int $baseline,
+        int $color,
+        bool $bold = false,
+        int $maxWidth = 760,
+    ): void {
+        $fontPath = base_path('vendor/dompdf/dompdf/lib/fonts/'.($bold ? 'DejaVuSans-Bold.ttf' : 'DejaVuSans.ttf'));
+
+        if (! is_readable($fontPath)) {
+            throw new \RuntimeException('No se encontró la tipografía para la imagen QR compartible.');
+        }
+
+        $fittedFontSize = $fontSize;
+        $boundingBox = imagettfbbox($fittedFontSize, 0, $fontPath, $text);
+
+        while ($boundingBox !== false && ($boundingBox[2] - $boundingBox[0]) > $maxWidth && $fittedFontSize > 18) {
+            $fittedFontSize--;
+            $boundingBox = imagettfbbox($fittedFontSize, 0, $fontPath, $text);
+        }
+
+        if ($boundingBox === false) {
+            throw new \RuntimeException('No se pudo medir el texto de la imagen QR compartible.');
+        }
+
+        $textWidth = $boundingBox[2] - $boundingBox[0];
+        $x = (int) floor((imagesx($image) - $textWidth) / 2) - $boundingBox[0];
+
+        if (imagettftext($image, $fittedFontSize, 0, $x, $baseline, $color, $fontPath, $text) === false) {
+            throw new \RuntimeException('No se pudo dibujar el texto de la imagen QR compartible.');
+        }
     }
 }

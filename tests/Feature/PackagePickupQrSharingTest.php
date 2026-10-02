@@ -45,12 +45,12 @@ class PackagePickupQrSharingTest extends TestCase
         [$user, $package, $pickupToken] = $this->userPackageAndToken();
         $rawToken = $pickupToken->token_encrypted;
         $expectedPickupUrl = route('pickup.show', ['token' => $rawToken]);
-        $validQrPng = (new GeneratePickupQrCodeAction)->executePng('https://example.test/pickup/token', 320, 12);
+        $validQrPng = (new GeneratePickupQrCodeAction)->executePng('https://example.test/pickup/token', 560, 12);
 
         $this->mock(GeneratePickupQrCodeAction::class, function (MockInterface $mock) use ($expectedPickupUrl, $validQrPng): void {
             $mock->shouldReceive('executePng')
                 ->once()
-                ->with($expectedPickupUrl, 320, 12)
+                ->with($expectedPickupUrl, 560, 12)
                 ->andReturn($validQrPng);
         });
 
@@ -132,18 +132,59 @@ class PackagePickupQrSharingTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_png_does_not_contain_internal_storage_information(): void
+    public function test_png_reflects_tracking_and_recipient_snapshots(): void
     {
         [$user, $package] = $this->userPackageAndToken();
 
-        $content = $this->actingAs($user)
+        $originalPng = $this->actingAs($user)
             ->get(route('packages.pickup-qr.download', $package))
             ->assertOk()
             ->getContent();
 
-        $this->assertStringNotContainsString('SECRET-STORAGE-42', $content);
-        $this->assertStringNotContainsString('99.75', $content);
-        $this->assertStringNotContainsString('NOTA INTERNA SECRETA', $content);
+        $package->update(['tracking_code' => 'TIK-261002-0015']);
+        $trackingPng = $this->actingAs($user)
+            ->get(route('packages.pickup-qr.download', $package))
+            ->assertOk()
+            ->getContent();
+
+        $package->update(['recipient_name' => 'Juan Pérez']);
+        $recipientNamePng = $this->actingAs($user)
+            ->get(route('packages.pickup-qr.download', $package))
+            ->assertOk()
+            ->getContent();
+
+        $package->update(['recipient_phone' => '70000000']);
+        $recipientPhonePng = $this->actingAs($user)
+            ->get(route('packages.pickup-qr.download', $package))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertNotSame($originalPng, $trackingPng);
+        $this->assertNotSame($trackingPng, $recipientNamePng);
+        $this->assertNotSame($recipientNamePng, $recipientPhonePng);
+    }
+
+    public function test_png_does_not_reflect_internal_storage_information(): void
+    {
+        [$user, $package] = $this->userPackageAndToken();
+
+        $originalPng = $this->actingAs($user)
+            ->get(route('packages.pickup-qr.download', $package))
+            ->assertOk()
+            ->getContent();
+
+        $package->update([
+            'storage_code' => 'ANOTHER-SECRET-STORAGE',
+            'storage_price' => '184.30',
+            'notes' => 'OTRA NOTA INTERNA SECRETA',
+        ]);
+
+        $updatedPng = $this->actingAs($user)
+            ->get(route('packages.pickup-qr.download', $package))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame($originalPng, $updatedPng);
     }
 
     public function test_whatsapp_share_uses_recipient_phone_without_modifying_it(): void
@@ -195,6 +236,7 @@ class PackagePickupQrSharingTest extends TestCase
             'storage_code' => 'SECRET-STORAGE-42',
             'storage_price' => '99.75',
             'notes' => 'NOTA INTERNA SECRETA',
+            'recipient_name' => 'María del Carmen López',
             'recipient_phone' => $recipientPhone,
             'received_by' => $user->id,
         ]);
