@@ -164,6 +164,45 @@ class PackagePickupQrSharingTest extends TestCase
         $this->assertNotSame($recipientNamePng, $recipientPhonePng);
     }
 
+    public function test_png_reflects_the_configured_branch_address(): void
+    {
+        [$user, $package] = $this->userPackageAndToken();
+        $package->branch->update(['address' => 'Calle Configurada 123']);
+
+        $configuredAddressPng = $this->actingAs($user)
+            ->get(route('packages.pickup-qr.download', $package))
+            ->assertOk()
+            ->getContent();
+
+        $package->branch->update(['address' => 'Avenida Alternativa 456']);
+        $otherAddressPng = $this->actingAs($user)
+            ->get(route('packages.pickup-qr.download', $package))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertNotSame($configuredAddressPng, $otherAddressPng);
+    }
+
+    public function test_png_uses_the_fallback_address_when_branch_address_is_empty(): void
+    {
+        [$user, $package] = $this->userPackageAndToken();
+        $fallbackAddress = 'Ayacucho y General Acha, al lado de Entel - Edificio Galindo, 2do piso';
+        $package->branch->update(['address' => null]);
+
+        $fallbackPng = $this->actingAs($user)
+            ->get(route('packages.pickup-qr.download', $package))
+            ->assertOk()
+            ->getContent();
+
+        $package->branch->update(['address' => $fallbackAddress]);
+        $configuredFallbackPng = $this->actingAs($user)
+            ->get(route('packages.pickup-qr.download', $package))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame($fallbackPng, $configuredFallbackPng);
+    }
+
     public function test_png_does_not_reflect_internal_storage_information(): void
     {
         [$user, $package] = $this->userPackageAndToken();

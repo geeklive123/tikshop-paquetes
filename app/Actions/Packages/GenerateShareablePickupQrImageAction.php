@@ -83,6 +83,7 @@ class GenerateShareablePickupQrImageAction
 
     private function composeImage(Package $package, string $qrPng): string
     {
+        $package->loadMissing('branch:id,address');
         $canvas = imagecreatetruecolor(900, 1120);
         $qrImage = imagecreatefromstring($qrPng);
 
@@ -103,21 +104,29 @@ class GenerateShareablePickupQrImageAction
             $this->drawCenteredText($canvas, 'TIK SHOP', 42, 110, $red, bold: true);
         }
 
-        $this->drawCenteredText($canvas, 'Código:', 21, 205, $gray, bold: true);
-        $this->drawCenteredText($canvas, $package->tracking_code, 34, 244, $black, bold: true);
-        $this->drawCenteredText($canvas, 'Destinatario:', 21, 290, $gray, bold: true);
-        $this->drawCenteredText($canvas, $package->recipient_name, 32, 329, $black, bold: true);
-        $this->drawCenteredText($canvas, 'Celular:', 21, 375, $gray, bold: true);
-        $this->drawCenteredText($canvas, $package->recipient_phone, 32, 414, $black, bold: true);
+        $address = trim((string) $package->branch?->address);
+
+        if ($address === '') {
+            $address = (string) config('tickets.fallback_address');
+        }
+
+        $this->drawCenteredText($canvas, 'Dirección:', 18, 184, $gray, bold: true);
+        $this->drawCenteredWrappedText($canvas, $address, 19, 214, $black, maxWidth: 780, lineHeight: 27);
+        $this->drawCenteredText($canvas, 'Código:', 20, 272, $gray, bold: true);
+        $this->drawCenteredText($canvas, $package->tracking_code, 31, 308, $black, bold: true);
+        $this->drawCenteredText($canvas, 'Destinatario:', 20, 344, $gray, bold: true);
+        $this->drawCenteredText($canvas, $package->recipient_name, 28, 380, $black, bold: true);
+        $this->drawCenteredText($canvas, 'Celular:', 20, 416, $gray, bold: true);
+        $this->drawCenteredText($canvas, $package->recipient_phone, 28, 452, $black, bold: true);
 
         $qrX = (int) floor((imagesx($canvas) - imagesx($qrImage)) / 2);
-        imagecopy($canvas, $qrImage, $qrX, 438, 0, 0, imagesx($qrImage), imagesy($qrImage));
+        imagecopy($canvas, $qrImage, $qrX, 466, 0, 0, imagesx($qrImage), imagesy($qrImage));
         imagedestroy($qrImage);
         $this->drawCenteredText(
             $canvas,
             'Presenta este QR para recoger tu paquete en Tik Shop.',
             22,
-            1050,
+            1070,
             $black,
         );
 
@@ -187,6 +196,63 @@ class GenerateShareablePickupQrImageAction
 
         if (imagettftext($image, $fittedFontSize, 0, $x, $baseline, $color, $fontPath, $text) === false) {
             throw new \RuntimeException('No se pudo dibujar el texto de la imagen QR compartible.');
+        }
+    }
+
+    private function drawCenteredWrappedText(
+        \GdImage $image,
+        string $text,
+        float $fontSize,
+        int $firstBaseline,
+        int $color,
+        bool $bold = false,
+        int $maxWidth = 760,
+        int $lineHeight = 28,
+    ): void {
+        $fontPath = base_path('vendor/dompdf/dompdf/lib/fonts/'.($bold ? 'DejaVuSans-Bold.ttf' : 'DejaVuSans.ttf'));
+
+        if (! is_readable($fontPath)) {
+            throw new \RuntimeException('No se encontró la tipografía para la imagen QR compartible.');
+        }
+
+        $lines = [];
+        $currentLine = '';
+
+        foreach (preg_split('/\s+/u', trim($text)) ?: [] as $word) {
+            $candidate = $currentLine === '' ? $word : $currentLine.' '.$word;
+            $boundingBox = imagettfbbox($fontSize, 0, $fontPath, $candidate);
+
+            if ($boundingBox !== false && ($boundingBox[2] - $boundingBox[0]) <= $maxWidth) {
+                $currentLine = $candidate;
+
+                continue;
+            }
+
+            if ($currentLine !== '') {
+                $lines[] = $currentLine;
+            }
+
+            $currentLine = $word;
+        }
+
+        if ($currentLine !== '') {
+            $lines[] = $currentLine;
+        }
+
+        if (count($lines) > 2) {
+            $lines = [$lines[0], implode(' ', array_slice($lines, 1))];
+        }
+
+        foreach ($lines as $index => $line) {
+            $this->drawCenteredText(
+                $image,
+                $line,
+                $fontSize,
+                $firstBaseline + ($index * $lineHeight),
+                $color,
+                $bold,
+                $maxWidth,
+            );
         }
     }
 }
