@@ -22,7 +22,14 @@ class PrintJobManagementTest extends TestCase
 
     public function test_print_ticket_button_creates_snapshot_job_for_default_printer(): void
     {
+        $this->travelTo('2026-10-08 12:00:00');
         [$user, $package, $printer] = $this->printingContext(UserRole::Operator);
+        $package->update([
+            'received_at' => '2026-10-01 10:00:00',
+            'storage_price' => '2.00',
+            'weekly_storage_increment' => '1.00',
+        ]);
+        $printer->update(['copies' => 2]);
         $this->fakeTicketAssets();
 
         $response = $this->actingAs($user)->post(route('packages.print-ticket', $package));
@@ -34,6 +41,12 @@ class PrintJobManagementTest extends TestCase
         $this->assertSame($printer->id, $job->printer_id);
         $this->assertSame($package->tracking_code, $job->payload['tracking_code']);
         $this->assertSame($package->branch->ticketAddress(), $job->payload['branch_address']);
+        $this->assertSame($package->status->value, $job->payload['status']);
+        $this->assertSame($package->status->label(), $job->payload['status_label']);
+        $this->assertSame('2.00', $job->payload['storage_base_amount']);
+        $this->assertSame('1.00', $job->payload['storage_surcharge_amount']);
+        $this->assertSame('3.00', $job->payload['storage_total_amount']);
+        $this->assertSame(2, $job->payload['copies']);
         $this->assertSame('data:image/png;base64,cXItcG5n', $job->payload['qr_data_uri']);
         $this->assertSame('data:image/png;base64,bG9nbw==', $job->payload['logo_data_uri']);
         $this->assertDatabaseCount('print_job_events', 1);

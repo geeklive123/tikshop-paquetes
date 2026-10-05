@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 class CreatePackageCategoryAction
 {
     /**
-     * @param  array{name: string, code_prefix: string, code_start: int, code_end: int, price: string, commission_rate?: string|null, color?: string|null, active: bool}  $data
+     * @param  array{name: string, code_prefix: string, code_start: int, code_end: int, price: string, commission_rate?: string|null, weekly_storage_increment: string, color?: string|null, active: bool}  $data
      */
     public function execute(User $user, array $data): PackageCategory
     {

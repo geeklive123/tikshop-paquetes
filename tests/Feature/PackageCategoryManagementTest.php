@@ -24,6 +24,7 @@ class PackageCategoryManagementTest extends TestCase
         $this->assertSame($owner->company_id, $category->company_id);
         $this->assertSame('3.00', $category->price);
         $this->assertSame('0.70', $category->commission_rate);
+        $this->assertSame('1.00', $category->weekly_storage_increment);
     }
 
     public function test_admin_can_update_category(): void
@@ -52,6 +53,20 @@ class PackageCategoryManagementTest extends TestCase
         $response->assertForbidden();
     }
 
+    public function test_operator_cannot_modify_weekly_storage_increment(): void
+    {
+        $company = Company::factory()->create();
+        $operator = User::factory()->for($company)->withRole(UserRole::Operator)->create();
+        $category = PackageCategory::factory()->for($company)->create(['weekly_storage_increment' => '1.00']);
+
+        $this->actingAs($operator)->put(route('package-categories.update', $category), [
+            ...$this->validPayload(),
+            'weekly_storage_increment' => '9.00',
+        ])->assertForbidden();
+
+        $this->assertSame('1.00', $category->fresh()->weekly_storage_increment);
+    }
+
     public function test_category_from_another_company_is_not_found(): void
     {
         $owner = User::factory()->withRole(UserRole::Owner)->create();
@@ -72,6 +87,7 @@ class PackageCategoryManagementTest extends TestCase
             'code_end' => '10',
             'price' => '3.00',
             'commission_rate' => '0.70',
+            'weekly_storage_increment' => '1.00',
             'color' => '#F59E0B',
             'active' => '1',
         ];

@@ -58,6 +58,17 @@
         <x-input-error :messages="$errors->get('paper_width')" class="mt-2" />
     </div>
 
+    <div>
+        <x-input-label for="copies" value="Copias por ticket" />
+        <select id="copies" name="copies" required class="mt-1.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-tik-red focus:ring-tik-red">
+            @foreach ([1, 2] as $copies)
+                <option value="{{ $copies }}" @selected((int) old('copies', $printer->copies ?? 1) === $copies)>{{ $copies }}</option>
+            @endforeach
+        </select>
+        <p class="mt-1 text-xs text-gray-500">Windows enviará cada copia mediante la cola configurada.</p>
+        <x-input-error :messages="$errors->get('copies')" class="mt-2" />
+    </div>
+
     <div class="sm:col-span-2">
         <x-input-label for="notes" value="Notas" />
         <textarea id="notes" name="notes" rows="3" maxlength="2000" class="mt-1.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-tik-red focus:ring-tik-red">{{ old('notes', $printer->notes) }}</textarea>

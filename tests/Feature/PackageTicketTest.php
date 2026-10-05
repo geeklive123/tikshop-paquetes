@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Packages\CalculatePackageStorageAmountAction;
 use App\Actions\Packages\ResolveTicketLogoAction;
+use App\Enums\PackageStatus;
 use App\Enums\UserRole;
 use App\Models\Branch;
 use App\Models\Company;
@@ -101,6 +103,7 @@ class PackageTicketTest extends TestCase
             'package' => $package,
             'qrImagePath' => null,
             'logoDataUri' => null,
+            'storageAmount' => app(CalculatePackageStorageAmountAction::class)->execute($package),
         ])->render();
 
         $response = $this->actingAs($user)->get(route('packages.ticket', $package));
@@ -121,6 +124,29 @@ class PackageTicketTest extends TestCase
         $this->assertStringContainsString('/MediaBox [0.000 0.000 226.770 510.240]', $response->getContent());
     }
 
+    public function test_package_ticket_view_shows_current_storage_total(): void
+    {
+        $this->travelTo('2026-10-08 12:00:00');
+        [, $package] = $this->userAndPackage(UserRole::Operator);
+        $package->update([
+            'received_at' => '2026-10-01 10:00:00',
+            'storage_price' => '2.00',
+            'weekly_storage_increment' => '1.00',
+        ]);
+        $package->load(['company:id,name', 'branch:id,name,address', 'category:id,name']);
+
+        $ticket = view('packages.ticket', [
+            'package' => $package,
+            'qrImagePath' => null,
+            'logoDataUri' => null,
+            'storageAmount' => app(CalculatePackageStorageAmountAction::class)->execute($package),
+        ])->render();
+
+        $this->assertStringContainsString('Recargo semanal', $ticket);
+        $this->assertStringContainsString('Total almacenaje', $ticket);
+        $this->assertStringContainsString('Bs 3.00', $ticket);
+    }
+
     public function test_package_ticket_uses_fallback_address_when_branch_address_is_empty(): void
     {
         [, $package] = $this->userAndPackage(UserRole::Operator);
@@ -131,6 +157,7 @@ class PackageTicketTest extends TestCase
             'package' => $package,
             'qrImagePath' => null,
             'logoDataUri' => null,
+            'storageAmount' => app(CalculatePackageStorageAmountAction::class)->execute($package),
         ])->render();
 
         $this->assertStringContainsString(self::FALLBACK_ADDRESS, $ticket);
@@ -147,6 +174,7 @@ class PackageTicketTest extends TestCase
             'package' => $package,
             'qrImagePath' => null,
             'logoDataUri' => null,
+            'storageAmount' => app(CalculatePackageStorageAmountAction::class)->execute($package),
         ])->render();
 
         $this->assertStringContainsString('Calle Propia 123', $ticket);
@@ -200,6 +228,24 @@ class PackageTicketTest extends TestCase
         $this->actingAs($user)->get(route('packages.ticket', $package))->assertOk();
         $this->actingAs($user)->get(route('packages.ticket', $package))->assertOk();
 
+        $this->assertDatabaseCount('package_pickup_tokens', 1);
+    }
+
+    public function test_delivered_package_ticket_uses_frozen_total_and_existing_used_token(): void
+    {
+        [$user, $package] = $this->userAndPackage(UserRole::Operator);
+        $package->update([
+            'status' => PackageStatus::Delivered,
+            'weekly_storage_increment' => '1.00',
+            'final_storage_amount' => '7.00',
+            'delivered_at' => now(),
+        ]);
+        $package->pickupTokens()->sole()->update(['used_at' => now()]);
+
+        $response = $this->actingAs($user)->get(route('packages.ticket', $package));
+
+        $response->assertOk();
+        $this->assertStringStartsWith('%PDF', $response->getContent());
         $this->assertDatabaseCount('package_pickup_tokens', 1);
     }
 

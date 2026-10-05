@@ -51,7 +51,10 @@
         <tr><td>Destinatario</td><td>{{ $package->recipient_name }}</td></tr>
         <tr><td>Tel. destinatario</td><td>{{ $package->recipient_phone }}</td></tr>
         <tr><td>Estado</td><td>{{ $package->status->label() }}</td></tr>
-        <tr><td>Costo almacenaje</td><td class="price">Bs {{ number_format((float) $package->storage_price, 2) }}</td></tr>
+        <tr><td>Precio base</td><td>Bs {{ $storageAmount['baseAmount'] }}</td></tr>
+        <tr><td>Tiempo almacenado</td><td>{{ $storageAmount['daysStored'] }} {{ $storageAmount['daysStored'] === 1 ? 'día' : 'días' }}</td></tr>
+        <tr><td>Recargo semanal</td><td>Bs {{ $storageAmount['surchargeAmount'] }}</td></tr>
+        <tr><td>Total almacenaje</td><td class="price">Bs {{ $storageAmount['totalAmount'] }}</td></tr>
         <tr><td colspan="2" class="description-row"><div class="divider"></div><span class="muted">Descripción</span><div class="description">{{ $package->description ?: 'Sin descripción' }}</div></td></tr>
     </table>
 

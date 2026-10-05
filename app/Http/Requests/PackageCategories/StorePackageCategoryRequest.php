@@ -36,6 +36,7 @@ class StorePackageCategoryRequest extends FormRequest
             'code_end' => ['required', 'integer', 'gte:code_start'],
             'price' => ['required', 'decimal:0,2', 'min:0'],
             'commission_rate' => ['nullable', 'decimal:0,2', 'min:0'],
+            'weekly_storage_increment' => ['required', 'decimal:0,2', 'min:0'],
             'color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'active' => ['required', 'boolean'],
         ];

@@ -47,6 +47,7 @@ class CreatePackageAction
                 'seller_id' => $seller->id,
                 'package_category_id' => $category->id,
                 'storage_price' => $category->price,
+                'weekly_storage_increment' => $category->weekly_storage_increment,
                 'storage_code' => $data['storage_code'],
                 'tracking_code' => $this->nextTrackingCode($receivedAt),
                 'sender_name' => $seller->snapshotName(),

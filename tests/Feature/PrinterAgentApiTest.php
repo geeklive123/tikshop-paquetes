@@ -82,6 +82,19 @@ class PrinterAgentApiTest extends TestCase
             ->assertOk()->assertJsonPath('data.ulid', $ownJob->ulid)->assertJsonMissingPath('data.company_id');
     }
 
+    public function test_pending_job_response_preserves_ticket_copies_snapshot(): void
+    {
+        [, $token, $branch] = $this->agentContext();
+        $job = PrintJob::factory()->forBranch($branch)->create([
+            'payload' => ['tracking_code' => 'TIK-COPIES', 'copies' => 2],
+        ]);
+
+        $this->withToken($token)->getJson(route('api.print-agent.jobs.next'))
+            ->assertOk()
+            ->assertJsonPath('data.ulid', $job->ulid)
+            ->assertJsonPath('data.payload.copies', 2);
+    }
+
     public function test_agent_cannot_claim_job_from_another_branch_or_company(): void
     {
         [, $token, $branch] = $this->agentContext();

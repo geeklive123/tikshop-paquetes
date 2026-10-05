@@ -30,6 +30,7 @@ class PrinterManagementTest extends TestCase
         $this->assertSame(PrinterConnectionType::Lan, $printer->connection_type);
         $this->assertSame('192.168.1.50', $printer->ip_address);
         $this->assertSame(9100, $printer->port);
+        $this->assertSame(2, $printer->copies);
     }
 
     public function test_lan_printer_requires_valid_ip_and_port(): void
@@ -45,6 +46,21 @@ class PrinterManagementTest extends TestCase
         ]);
 
         $response->assertInvalid(['ip_address', 'port']);
+        $this->assertDatabaseCount('printers', 0);
+    }
+
+    public function test_printer_rejects_more_than_two_copies(): void
+    {
+        $company = Company::factory()->create();
+        $branch = Branch::factory()->for($company)->create();
+        $owner = User::factory()->for($company)->withRole(UserRole::Owner)->create();
+
+        $response = $this->actingAs($owner)->post(route('printers.store'), [
+            ...$this->validPayload($branch),
+            'copies' => '3',
+        ]);
+
+        $response->assertInvalid(['copies']);
         $this->assertDatabaseCount('printers', 0);
     }
 
@@ -185,6 +201,7 @@ class PrinterManagementTest extends TestCase
             'ip_address' => '192.168.1.50',
             'port' => '9100',
             'paper_width' => '80',
+            'copies' => '2',
             'is_default' => '1',
             'active' => '1',
             'notes' => 'Impresora térmica de recepción.',

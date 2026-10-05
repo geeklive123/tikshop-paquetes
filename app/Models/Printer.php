@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'ip_address',
     'port',
     'paper_width',
+    'copies',
     'is_default',
     'active',
     'notes',
@@ -73,6 +74,7 @@ class Printer extends Model
         return [
             'connection_type' => PrinterConnectionType::class,
             'paper_width' => 'integer',
+            'copies' => 'integer',
             'is_default' => 'boolean',
             'active' => 'boolean',
         ];

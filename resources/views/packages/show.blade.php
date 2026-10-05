@@ -22,13 +22,16 @@
                     <div><p class="text-xs font-semibold uppercase tracking-wider text-gray-500">Código de seguimiento</p><p class="mt-2 font-mono text-2xl font-bold text-tik-red-dark sm:text-3xl">{{ $package->tracking_code }}</p></div>
                     <x-package-status-badge :status="$package->status" />
                 </div>
-                <dl class="mt-6 grid grid-cols-1 gap-5 border-t border-gray-100 pt-5 sm:grid-cols-3">
+                <dl class="mt-6 grid grid-cols-1 gap-5 border-t border-gray-100 pt-5 sm:grid-cols-4">
                     <div><dt class="text-sm font-medium text-gray-500">Fecha de recepción</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->received_at?->format('d/m/Y H:i') ?? 'Sin registrar' }}</dd></div>
                     <div><dt class="text-sm font-medium text-gray-500">Recibido por</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->receivedBy?->name ?? 'Sin registrar' }}</dd></div>
                     <div><dt class="text-sm font-medium text-gray-500">Sucursal</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->branch?->name ?? 'Sin registrar' }}</dd></div>
                     <div><dt class="text-sm font-medium text-gray-500">Categoría / tamaño</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->category?->name ?? 'Sin categoría' }}</dd></div>
                     <div><dt class="text-sm font-medium text-gray-500">Código / ubicación</dt><dd class="mt-1 font-mono text-sm font-bold text-tik-ink">{{ $package->storage_code ?? 'Sin registrar' }}</dd></div>
-                    <div><dt class="text-sm font-medium text-gray-500">Costo de almacenaje</dt><dd class="mt-1 text-sm font-bold text-tik-red-dark">{{ $package->storage_price === null ? 'Sin registrar' : 'Bs '.number_format((float) $package->storage_price, 2) }}</dd></div>
+                    <div><dt class="text-sm font-medium text-gray-500">Precio base</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">Bs {{ $storageAmount['baseAmount'] }}</dd></div>
+                    <div><dt class="text-sm font-medium text-gray-500">Tiempo almacenado</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $storageAmount['daysStored'] }} {{ $storageAmount['daysStored'] === 1 ? 'día' : 'días' }}</dd></div>
+                    <div><dt class="text-sm font-medium text-gray-500">Recargo semanal</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">Bs {{ $storageAmount['surchargeAmount'] }}</dd></div>
+                    <div class="rounded-xl bg-red-50 px-4 py-3"><dt class="text-xs font-bold uppercase tracking-wider text-tik-red-dark">Total actual</dt><dd class="mt-1 text-lg font-bold text-tik-red-dark">Bs {{ $storageAmount['totalAmount'] }}</dd></div>
                 </dl>
 
                 @if ($package->status === \App\Enums\PackageStatus::Cancelled)
@@ -61,7 +64,7 @@
                     @can('update', $package)
                         <a href="{{ route('packages.edit', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Editar paquete</a>
                     @endcan
-                    @if (! in_array($package->status, [\App\Enums\PackageStatus::Delivered, \App\Enums\PackageStatus::Cancelled], true))
+                    @if ($package->status !== \App\Enums\PackageStatus::Cancelled)
                         @if ($defaultPrinter)
                             <form method="POST" action="{{ route('packages.print-ticket', $package) }}">
                                 @csrf
@@ -70,7 +73,7 @@
                         @endif
                         <a href="{{ route('packages.ticket', $package) }}" target="_blank" class="inline-flex items-center justify-center rounded-xl border border-tik-red px-5 py-3 text-sm font-semibold text-tik-red-dark hover:bg-red-50">Ver PDF</a>
                         <a href="{{ route('packages.ticket.download', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Descargar</a>
-                        @if ($hasShareablePickupQr)
+                        @if ($hasShareablePickupQr && $package->status !== \App\Enums\PackageStatus::Delivered)
                             @can('sharePickupQr', $package)
                                 <a href="{{ route('packages.pickup-qr.download', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">Descargar QR</a>
                                 <button

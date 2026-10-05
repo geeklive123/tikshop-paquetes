@@ -35,6 +35,7 @@ class UpdatePrinterRequest extends FormRequest
             'ip_address' => ['required_if:connection_type,lan', 'nullable', 'ip'],
             'port' => ['required_if:connection_type,lan', 'nullable', 'integer', 'min:1', 'max:65535'],
             'paper_width' => ['required', Rule::in([58, 80])],
+            'copies' => ['required', 'integer', 'min:1', 'max:2'],
             'is_default' => ['sometimes', 'boolean'],
             'active' => ['sometimes', 'boolean'],
             'notes' => ['nullable', 'string', 'max:2000'],

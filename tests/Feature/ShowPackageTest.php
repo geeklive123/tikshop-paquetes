@@ -58,6 +58,26 @@ class ShowPackageTest extends TestCase
         $response->assertNotFound();
     }
 
+    public function test_package_detail_shows_current_storage_breakdown(): void
+    {
+        $this->travelTo('2026-10-15 12:00:00');
+        [$user, $branch] = $this->userWithBranch();
+        $package = Package::factory()->forBranch($branch)->create([
+            'received_at' => '2026-10-01 10:00:00',
+            'storage_price' => '2.00',
+            'weekly_storage_increment' => '1.00',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('packages.show', $package));
+
+        $response->assertSee('Precio base');
+        $response->assertSee('15 días');
+        $response->assertSee('Recargo semanal');
+        $response->assertSee('Bs 2.00');
+        $response->assertSee('Total actual');
+        $response->assertSee('Bs 4.00');
+    }
+
     public function test_package_detail_escapes_user_provided_content(): void
     {
         [$user, $branch] = $this->userWithBranch();

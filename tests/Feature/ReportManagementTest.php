@@ -38,7 +38,7 @@ class ReportManagementTest extends TestCase
         $response = $this->actingAs($user)->get(route('reports.index'));
 
         $response->assertSee('Reportes');
-        $response->assertSee('Monto de almacenaje registrado');
+        $response->assertSee('Total de almacenaje asociado');
     }
 
     public function test_operator_receives_forbidden_and_does_not_see_reports_menu(): void
@@ -61,6 +61,26 @@ class ReportManagementTest extends TestCase
 
         $response->assertViewHas('metrics', fn (array $metrics): bool => $metrics['received'] === 1
             && $metrics['storageAmount'] === 8.0);
+    }
+
+    public function test_summary_distinguishes_base_surcharge_and_total_without_calling_it_collected(): void
+    {
+        $this->travelTo('2026-10-08 12:00:00');
+        $owner = User::factory()->withRole(UserRole::Owner)->create();
+        Package::factory()->for($owner->company)->create([
+            'received_at' => '2026-10-01 10:00:00',
+            'storage_price' => '2.00',
+            'weekly_storage_increment' => '1.00',
+        ]);
+
+        $response = $this->actingAs($owner)->get(route('reports.index', ['period' => 'this_month']));
+
+        $response->assertViewHas('metrics', fn (array $metrics): bool => $metrics['baseStorageAmount'] === 2.0
+            && $metrics['storageSurchargeAmount'] === 1.0
+            && $metrics['storageAmount'] === 3.0);
+        $response->assertSee('Precio base asociado');
+        $response->assertSee('Recargo asociado');
+        $response->assertSee('No representan dinero cobrado');
     }
 
     /** @return array<string, array{string, string, string}> */
@@ -139,6 +159,7 @@ class ReportManagementTest extends TestCase
 
         $response->assertViewHas('metrics', fn (array $metrics): bool => $metrics === [
             'received' => 4, 'pending' => 2, 'delivered' => 1, 'cancelled' => 1,
+            'baseStorageAmount' => 60.0, 'storageSurchargeAmount' => 0.0,
             'storageAmount' => 60.0, 'activeSellers' => 2,
         ]);
     }
@@ -193,7 +214,7 @@ class ReportManagementTest extends TestCase
         $response = $this->actingAs($owner)->get(route('reports.sellers.index', ['date_from' => '2026-09-01', 'date_to' => '2026-09-30']));
 
         $response->assertSee('Vendedora Reportada');
-        $response->assertSee('No representa una comisión calculada.');
+        $response->assertSee('No representan dinero cobrado ni una comisión calculada.');
         $response->assertViewHas('sellers', function ($sellers) use ($seller): bool {
             $row = $sellers->getCollection()->firstWhere('id', $seller->id);
 

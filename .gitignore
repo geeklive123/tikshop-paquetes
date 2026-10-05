@@ -21,6 +21,10 @@
 /storage/*.key
 /storage/pail
 /vendor
+/windows-agent/**/bin
+/windows-agent/**/obj
+/windows-agent/artifacts
+/windows-agent/TestResults
 _ide_helper.php
 Homestead.json
 Homestead.yaml

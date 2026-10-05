@@ -37,6 +37,8 @@ class PackageFactory extends Factory
             'tracking_code' => sprintf('TIK-%s-%04d', $receivedAt->format('ymd'), fake()->unique()->numberBetween(1, 9999)),
             'storage_code' => 'S'.fake()->numberBetween(1, 20).'-'.fake()->numberBetween(1, 50),
             'storage_price' => fake()->randomFloat(2, 1, 20),
+            'weekly_storage_increment' => '0.00',
+            'final_storage_amount' => null,
             'sender_name' => fake()->name(),
             'sender_phone' => fake()->phoneNumber(),
             'recipient_name' => fake()->name(),

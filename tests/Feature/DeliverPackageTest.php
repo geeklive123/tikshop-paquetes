@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Packages\CalculatePackageStorageAmountAction;
 use App\Enums\PackageEventType;
 use App\Enums\PackageStatus;
 use App\Enums\UserRole;
@@ -61,6 +62,27 @@ class DeliverPackageTest extends TestCase
         $this->assertSame('2026-09-30 23:55:00', $package->fresh()->delivered_at->format('Y-m-d H:i:s'));
         $this->assertSame('America/La_Paz', $package->fresh()->delivered_at->timezoneName);
         $this->assertSame('2026-09-30 23:55:00', $pickupToken->fresh()->used_at->format('Y-m-d H:i:s'));
+    }
+
+    public function test_delivery_freezes_final_storage_amount_and_it_stops_growing(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-08 12:00:00', 'America/La_Paz'));
+        [$user, $package, $rawToken] = $this->pickupContext(UserRole::Operator);
+        $package->update([
+            'received_at' => '2026-10-01 10:00:00',
+            'storage_price' => '2.00',
+            'weekly_storage_increment' => '1.00',
+        ]);
+
+        $this->actingAs($user)->post(route('pickup.deliver'), ['token' => $rawToken])->assertRedirect();
+
+        $deliveredPackage = $package->fresh();
+        $this->assertSame('3.00', $deliveredPackage->final_storage_amount);
+        $amount = app(CalculatePackageStorageAmountAction::class)->execute(
+            $deliveredPackage,
+            CarbonImmutable::parse('2026-11-30 12:00:00', 'America/La_Paz'),
+        );
+        $this->assertSame('3.00', $amount['totalAmount']);
     }
 
     public function test_other_company_cannot_confirm_delivery(): void

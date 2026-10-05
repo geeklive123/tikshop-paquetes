@@ -25,7 +25,7 @@
                             <div><dt class="text-sm font-medium text-gray-500">Estado</dt><dd class="mt-1 font-semibold text-tik-ink">{{ $package->status->label() }}</dd></div>
                             <div><dt class="text-sm font-medium text-gray-500">Categoría</dt><dd class="mt-1 font-semibold text-tik-ink">{{ $package->category?->name ?? 'Sin categoría' }}</dd></div>
                             <div><dt class="text-sm font-medium text-gray-500">Ubicación</dt><dd class="mt-1 font-mono font-bold text-tik-ink">{{ $package->storage_code }}</dd></div>
-                            <div><dt class="text-sm font-medium text-gray-500">Costo</dt><dd class="mt-1 font-bold text-tik-red-dark">Bs {{ number_format((float) $package->storage_price, 2) }}</dd></div>
+                            <div><dt class="text-sm font-medium text-gray-500">Total actual</dt><dd class="mt-1 font-bold text-tik-red-dark">Bs {{ $storageAmount['totalAmount'] }}</dd></div>
                         </dl>
                     </div>
 
@@ -40,13 +40,34 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 gap-3 border-t border-gray-100 p-5 print:hidden sm:grid-cols-2 lg:grid-cols-5 sm:p-8">
+                <div class="grid grid-cols-1 gap-3 border-t border-gray-100 p-5 print:hidden sm:grid-cols-2 sm:p-8">
+                    @if ($hasShareablePickupQr)
+                        <button
+                            type="button"
+                            data-share-pickup-qr
+                            data-download-url="{{ route('packages.pickup-qr.download', $package) }}"
+                            data-filename="qr-{{ $package->tracking_code }}.png"
+                            data-whatsapp-url="{{ $whatsAppPickupShareUrl }}"
+                            class="inline-flex items-center justify-center rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-wait disabled:opacity-60"
+                        >Compartir QR por WhatsApp</button>
+                        <a href="{{ route('packages.pickup-qr.download', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">Descargar QR</a>
+                    @endif
+                    @if ($defaultPrinter)
+                        <form method="POST" action="{{ route('packages.print-ticket', $package) }}">
+                            @csrf
+                            <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl bg-tik-red px-4 py-3 text-sm font-semibold text-white transition hover:bg-tik-red-dark">Imprimir ticket</button>
+                        </form>
+                    @else
+                        <a href="{{ route('packages.ticket', $package) }}" target="_blank" class="inline-flex items-center justify-center rounded-xl bg-tik-red px-4 py-3 text-sm font-semibold text-white transition hover:bg-tik-red-dark">Imprimir ticket</a>
+                    @endif
                     <a href="{{ route('packages.show', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-tik-box bg-white px-4 py-3 text-sm font-semibold text-tik-ink transition hover:bg-orange-50">Ver paquete</a>
-                    <a href="{{ route('packages.ticket', $package) }}" target="_blank" class="inline-flex items-center justify-center rounded-xl bg-tik-red px-4 py-3 text-sm font-semibold text-white transition hover:bg-tik-red-dark">Ver ticket PDF</a>
-                    <a href="{{ route('packages.ticket.download', $package) }}" class="inline-flex items-center justify-center rounded-xl border border-tik-red px-4 py-3 text-sm font-semibold text-tik-red-dark transition hover:bg-red-50">Descargar ticket PDF</a>
-                    <a href="{{ route('packages.create') }}" class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-tik-gray">Registrar otro paquete</a>
-                    <a href="{{ route('packages.index') }}" class="inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold text-gray-600 transition hover:bg-tik-gray hover:text-tik-ink">Volver al listado</a>
                 </div>
+                @if ($hasShareablePickupQr)
+                    <div class="border-t border-gray-100 px-5 pb-5 print:hidden sm:px-8 sm:pb-8">
+                        <p class="text-xs text-gray-500">En dispositivos compatibles se comparte el PNG directamente. Como respaldo, se descarga la imagen y se abre WhatsApp para adjuntarla.</p>
+                        <div data-pickup-qr-share-status class="mt-3 hidden rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900" role="status" aria-live="polite"></div>
+                    </div>
+                @endif
             </section>
         </div>
     </div>

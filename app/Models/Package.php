@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'tracking_code',
     'storage_code',
     'storage_price',
+    'weekly_storage_increment',
+    'final_storage_amount',
     'sender_name',
     'sender_phone',
     'recipient_name',
@@ -162,6 +164,8 @@ class Package extends Model
         return [
             'status' => PackageStatus::class,
             'storage_price' => 'decimal:2',
+            'weekly_storage_increment' => 'decimal:2',
+            'final_storage_amount' => 'decimal:2',
             'received_at' => 'datetime',
             'ready_at' => 'datetime',
             'delivered_at' => 'datetime',

@@ -16,6 +16,8 @@ use Illuminate\Validation\ValidationException;
 
 class DeliverPackageAction
 {
+    public function __construct(private CalculatePackageStorageAmountAction $calculateStorageAmount) {}
+
     public function execute(User $user, string $input): Package
     {
         return DB::transaction(function () use ($user, $input): Package {
@@ -86,10 +88,12 @@ class DeliverPackageAction
         $this->ensurePackageIsDeliverable($package);
 
         $deliveredAt = now();
+        $storageAmount = $this->calculateStorageAmount->execute($package, $deliveredAt);
         $package->update([
             'status' => PackageStatus::Delivered,
             'delivered_at' => $deliveredAt,
             'delivered_by' => $user->id,
+            'final_storage_amount' => $storageAmount['totalAmount'],
         ]);
         $pickupToken?->update(['used_at' => $deliveredAt]);
 

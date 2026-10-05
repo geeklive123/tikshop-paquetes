@@ -32,6 +32,7 @@ class PrinterFactory extends Factory
             'ip_address' => fake()->localIpv4(),
             'port' => 9100,
             'paper_width' => 80,
+            'copies' => 1,
             'is_default' => false,
             'active' => true,
             'notes' => null,

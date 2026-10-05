@@ -101,6 +101,18 @@ Ejemplos:
 - package_delivered
 - package_cancelled
 
+## Precio de almacenaje
+
+Cada paquete conserva como snapshots el precio base (`storage_price`) y el incremento semanal (`weekly_storage_increment`) vigentes al registrarlo. Los cambios posteriores en la categoría solo afectan paquetes nuevos.
+
+Los días se cuentan por fechas calendario inclusivas en `America/La_Paz`: el día de recepción es el día 1. La primera semana (días 1–7) usa únicamente el precio base. Desde el día 8 se aplica un incremento por cada nueva semana iniciada:
+
+`extra_weeks = max(0, intdiv(days_stored - 1, 7))`
+
+`total = storage_price + (extra_weeks * weekly_storage_increment)`
+
+Al entregar, el cálculo termina en `delivered_at` y se guarda en `final_storage_amount`. Los paquetes anulados no generan recargo adicional. Los reportes muestran precio base, recargo y total asociado; estos importes no representan un pago cobrado.
+
 ## Arquitectura de código
 
 La lógica debe separarse así:

@@ -48,6 +48,7 @@ class CreatePackageTest extends TestCase
         $this->assertSame($category->id, $package->package_category_id);
         $this->assertSame('S5-11', $package->storage_code);
         $this->assertSame('3.75', $package->storage_price);
+        $this->assertSame('1.00', $package->weekly_storage_increment);
         $this->assertSame(PackageStatus::ReadyForPickup, $package->status);
         $this->assertSame('2026-09-04 10:30:00', $package->received_at->format('Y-m-d H:i:s'));
         $this->assertSame('2026-09-04 10:30:00', $package->ready_at->format('Y-m-d H:i:s'));
@@ -130,11 +131,12 @@ class CreatePackageTest extends TestCase
         $response->assertOk();
         $response->assertSee('Paquete registrado correctamente');
         $response->assertSee($package->tracking_code);
+        $response->assertSee('Compartir QR por WhatsApp');
+        $response->assertSee('Descargar QR');
+        $response->assertSee('Imprimir ticket');
         $response->assertSee('Ver paquete');
-        $response->assertSee('Ver ticket PDF');
-        $response->assertSee('Descargar ticket PDF');
-        $response->assertSee('Registrar otro paquete');
-        $response->assertSee('Volver al listado');
+        $response->assertSee('data-whatsapp-url="https://wa.me/59170000002?', false);
+        $this->assertDatabaseCount('package_pickup_tokens', 1);
         $response->assertSee('data:image/svg+xml;base64,', escape: false);
         $response->assertSee('S5-11');
     }
@@ -218,9 +220,10 @@ class CreatePackageTest extends TestCase
         [$user, , , $category] = $this->userWithMainBranch(UserRole::Operator);
 
         $this->actingAs($user)->post(route('packages.store'), $this->validPayload($category));
-        $category->update(['price' => '9.50']);
+        $category->update(['price' => '9.50', 'weekly_storage_increment' => '1.50']);
 
         $this->assertSame('3.75', Package::query()->sole()->storage_price);
+        $this->assertSame('1.00', Package::query()->sole()->weekly_storage_increment);
     }
 
     public function test_package_cannot_use_the_main_branch_from_another_company(): void
@@ -256,6 +259,7 @@ class CreatePackageTest extends TestCase
             'code_start' => 1,
             'code_end' => 10,
             'price' => '3.75',
+            'weekly_storage_increment' => '1.00',
         ]);
 
         return [$user, $company, $mainBranch, $category];

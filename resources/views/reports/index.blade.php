@@ -28,7 +28,9 @@
                     ['label' => 'Pendientes', 'value' => $metrics['pending']],
                     ['label' => 'Entregados', 'value' => $metrics['delivered']],
                     ['label' => 'Anulados', 'value' => $metrics['cancelled']],
-                    ['label' => 'Monto de almacenaje registrado', 'value' => 'Bs '.number_format($metrics['storageAmount'], 2)],
+                    ['label' => 'Precio base asociado', 'value' => 'Bs '.number_format($metrics['baseStorageAmount'], 2)],
+                    ['label' => 'Recargo asociado', 'value' => 'Bs '.number_format($metrics['storageSurchargeAmount'], 2)],
+                    ['label' => 'Total de almacenaje asociado', 'value' => 'Bs '.number_format($metrics['storageAmount'], 2)],
                     ['label' => 'Vendedores con actividad', 'value' => $metrics['activeSellers']],
                 ];
             @endphp
@@ -43,7 +45,7 @@
             </section>
 
             <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-                El monto de almacenaje registrado suma el precio asociado a paquetes no anulados recibidos en el período. No representa dinero cobrado, utilidad ni comisión.
+                Los montos suman precio base y recargos actuales o finales de paquetes no anulados recibidos en el período. Para entregados se usa el total histórico congelado; para pendientes, el total vigente. No representan dinero cobrado, utilidad ni comisión.
             </div>
         </div>
     </div>

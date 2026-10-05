@@ -2,8 +2,10 @@
 
 namespace App\Actions\PrintJobs;
 
+use App\Actions\Packages\CalculatePackageStorageAmountAction;
 use App\Actions\Packages\GeneratePickupQrCodeAction;
 use App\Actions\Packages\ResolveTicketLogoAction;
+use App\Enums\PackageStatus;
 use App\Enums\PrintJobEventType;
 use App\Enums\PrintJobStatus;
 use App\Enums\PrintJobType;
@@ -19,6 +21,7 @@ class CreatePackageTicketPrintJobAction
     public function __construct(
         private GeneratePickupQrCodeAction $generatePickupQrCode,
         private ResolveTicketLogoAction $resolveTicketLogo,
+        private CalculatePackageStorageAmountAction $calculateStorageAmount,
     ) {}
 
     /** @throws ValidationException */
@@ -59,12 +62,16 @@ class CreatePackageTicketPrintJobAction
                 ]);
             }
 
-            $activeToken = $lockedPackage->pickupTokens()
-                ->whereNull('used_at')
-                ->whereNull('revoked_at')
-                ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
-                ->latest('id')
-                ->first();
+            $tokenQuery = $lockedPackage->pickupTokens()->latest('id');
+
+            if ($lockedPackage->status !== PackageStatus::Delivered) {
+                $tokenQuery
+                    ->whereNull('used_at')
+                    ->whereNull('revoked_at')
+                    ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()));
+            }
+
+            $activeToken = $tokenQuery->first();
             $rawToken = $activeToken?->token_encrypted;
 
             if (! is_string($rawToken) || $rawToken === '') {
@@ -73,6 +80,7 @@ class CreatePackageTicketPrintJobAction
                 ]);
             }
 
+            $storageAmount = $this->calculateStorageAmount->execute($lockedPackage);
             $job = PrintJob::query()->create([
                 'company_id' => $user->company_id,
                 'branch_id' => $lockedPackage->branch_id,
@@ -90,8 +98,15 @@ class CreatePackageTicketPrintJobAction
                     'sender_name' => $lockedPackage->sender_name,
                     'recipient_name' => $lockedPackage->recipient_name,
                     'recipient_phone' => $lockedPackage->recipient_phone,
+                    'status' => $lockedPackage->status->value,
+                    'status_label' => $lockedPackage->status->label(),
                     'description' => $lockedPackage->description,
                     'storage_price' => $lockedPackage->storage_price,
+                    'storage_base_amount' => $storageAmount['baseAmount'],
+                    'storage_days' => $storageAmount['daysStored'],
+                    'storage_surcharge_amount' => $storageAmount['surchargeAmount'],
+                    'storage_total_amount' => $storageAmount['totalAmount'],
+                    'copies' => $printer->copies,
                     'received_at' => $lockedPackage->received_at?->toIso8601String(),
                     'qr_data_uri' => 'data:image/png;base64,'.base64_encode(
                         $this->generatePickupQrCode->executePng(route('pickup.show', ['token' => $rawToken])),

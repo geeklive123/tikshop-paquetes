@@ -26,6 +26,7 @@ class PackageCategoryFactory extends Factory
             'code_end' => 10,
             'price' => fake()->randomFloat(2, 1, 20),
             'commission_rate' => null,
+            'weekly_storage_increment' => '0.00',
             'color' => '#E5252A',
             'active' => true,
         ];

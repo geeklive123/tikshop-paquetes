@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reports;
 
+use App\Actions\Packages\CalculatePackageStorageAmountAction;
 use App\Enums\PackageStatus;
 use App\Models\Package;
 use App\Models\User;
@@ -11,6 +12,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class GetPackageReportAction
 {
+    public function __construct(private CalculatePackageStorageAmountAction $calculateStorageAmount) {}
+
     /**
      * @param  array<string, mixed>  $filters
      * @return LengthAwarePaginator<int, Package>
@@ -21,7 +24,7 @@ class GetPackageReportAction
         $trackingCode = trim((string) ($filters['tracking_code'] ?? ''));
         $recipient = trim((string) ($filters['recipient'] ?? ''));
 
-        return Package::query()
+        $packages = Package::query()
             ->where('company_id', $user->company_id)
             ->whereBetween('received_at', [$start, $end])
             ->when($sellerId !== null, fn (Builder $query): Builder => $query->where('seller_id', $sellerId))
@@ -36,5 +39,11 @@ class GetPackageReportAction
             ->orderByDesc('id')
             ->paginate(15)
             ->withQueryString();
+
+        $packages->getCollection()->each(function (Package $package): void {
+            $package->setAttribute('storage_amount_breakdown', $this->calculateStorageAmount->execute($package));
+        });
+
+        return $packages;
     }
 }

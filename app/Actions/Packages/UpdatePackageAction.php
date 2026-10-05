@@ -70,6 +70,7 @@ class UpdatePackageAction
 
             if ($category->id !== $lockedPackage->package_category_id) {
                 $attributes['storage_price'] = $category->price;
+                $attributes['weekly_storage_increment'] = $category->weekly_storage_increment;
             }
 
             $lockedPackage->fill($attributes);

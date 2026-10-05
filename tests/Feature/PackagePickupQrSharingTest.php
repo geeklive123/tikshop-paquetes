@@ -176,6 +176,8 @@ class PackagePickupQrSharingTest extends TestCase
         $package->update([
             'storage_code' => 'ANOTHER-SECRET-STORAGE',
             'storage_price' => '184.30',
+            'weekly_storage_increment' => '81.20',
+            'final_storage_amount' => '999.00',
             'notes' => 'OTRA NOTA INTERNA SECRETA',
         ]);
 
