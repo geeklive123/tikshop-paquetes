@@ -120,6 +120,32 @@ class CreatePackageTest extends TestCase
         $response->assertSee('REGISTRAR PAQUETE');
     }
 
+    public function test_configurable_category_is_displayed_and_its_current_prices_are_snapshotted(): void
+    {
+        [$user, $company] = $this->userWithMainBranch(UserRole::Operator);
+        $category = PackageCategory::factory()->for($company)->create([
+            'name' => 'Especial',
+            'price' => '10.00',
+            'weekly_storage_increment' => '5.00',
+            'commission_rate' => '1.50',
+        ]);
+
+        $form = $this->actingAs($user)->get(route('packages.create'));
+
+        $form->assertOk();
+        $form->assertSee('Especial');
+        $form->assertSee('Bs 10.00');
+        $form->assertSee('\u0022id\u0022:\u0022'.$category->id.'\u0022,\u0022price\u0022:\u002210.00\u0022', false);
+
+        $this->actingAs($user)->post(route('packages.store'), $this->validPayload($category))->assertRedirect();
+
+        $package = Package::query()->sole();
+        $this->assertSame($category->id, $package->package_category_id);
+        $this->assertSame('10.00', $package->storage_price);
+        $this->assertSame('5.00', $package->weekly_storage_increment);
+        $this->assertSame('1.50', $category->fresh()->commission_rate);
+    }
+
     public function test_success_screen_shows_registered_package_and_expected_actions(): void
     {
         [$user, , , $category] = $this->userWithMainBranch(UserRole::Operator);
@@ -135,10 +161,95 @@ class CreatePackageTest extends TestCase
         $response->assertSee('Descargar QR');
         $response->assertSee('Imprimir ticket');
         $response->assertSee('Ver paquete');
+        $response->assertSee('Registrar otro paquete');
+        $response->assertSee('Registrar otro para el mismo cliente');
+        $response->assertSee('href="'.route('packages.create').'"', false);
+        $response->assertSee('href="'.route('packages.create', ['recipient_from' => $package->ulid]).'"', false);
         $response->assertSee('data-whatsapp-url="https://wa.me/59170000002?', false);
         $this->assertDatabaseCount('package_pickup_tokens', 1);
         $response->assertSee('data:image/svg+xml;base64,', escape: false);
         $response->assertSee('S5-11');
+    }
+
+    public function test_register_another_package_opens_a_clean_form(): void
+    {
+        [$user] = $this->userWithMainBranch(UserRole::Operator);
+
+        $response = $this->actingAs($user)->get(route('packages.create'));
+
+        $response->assertOk();
+        $response->assertViewHas('recipientPrefill', []);
+        $response->assertViewHas('preselectedSellerId', null);
+    }
+
+    public function test_register_another_for_same_client_prefills_only_recipient_identity(): void
+    {
+        [$user, $company] = $this->userWithMainBranch(UserRole::Operator);
+        $sourcePackage = Package::factory()->for($company)->create([
+            'recipient_name' => 'María Pérez',
+            'recipient_phone' => '70707070',
+            'storage_code' => 'ORIGINAL-1',
+            'description' => 'No reutilizar',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('packages.create', [
+            'recipient_from' => $sourcePackage->ulid,
+        ]));
+
+        $response->assertOk();
+        $response->assertViewHas('recipientPrefill', [
+            'name' => 'María Pérez',
+            'phone' => '70707070',
+        ]);
+        $response->assertViewHas('preselectedSellerId', null);
+        $response->assertSee('value="María Pérez"', false);
+        $response->assertSee('value="70707070"', false);
+        $response->assertDontSee('value="ORIGINAL-1"', false);
+        $response->assertDontSee('No reutilizar');
+    }
+
+    public function test_same_client_prefill_is_company_scoped(): void
+    {
+        [$user] = $this->userWithMainBranch(UserRole::Operator);
+        $otherPackage = Package::factory()->create();
+
+        $this->actingAs($user)->get(route('packages.create', [
+            'recipient_from' => $otherPackage->ulid,
+        ]))->assertNotFound();
+    }
+
+    public function test_same_client_flow_creates_an_independent_package_and_validates_again(): void
+    {
+        [$user, , , $category] = $this->userWithMainBranch(UserRole::Operator);
+        $firstPayload = $this->validPayload($category);
+        $this->actingAs($user)->post(route('packages.store'), $firstPayload)->assertRedirect();
+        $firstPackage = Package::query()->sole();
+        $firstToken = PackagePickupToken::query()->sole();
+
+        $this->actingAs($user)->get(route('packages.create', [
+            'recipient_from' => $firstPackage->ulid,
+        ]))->assertOk();
+        $this->actingAs($user)->post(route('packages.store'), [
+            'recipient_name' => $firstPackage->recipient_name,
+            'recipient_phone' => $firstPackage->recipient_phone,
+        ])->assertSessionHasErrors(['seller_id', 'package_category_id', 'storage_code']);
+
+        $secondPayload = $this->validPayload($category);
+        $secondPayload['recipient_name'] = $firstPackage->recipient_name;
+        $secondPayload['recipient_phone'] = $firstPackage->recipient_phone;
+        $secondPayload['storage_code'] = 'NUEVO-2';
+        $this->actingAs($user)->post(route('packages.store'), $secondPayload)->assertRedirect();
+
+        $secondPackage = Package::query()->whereKeyNot($firstPackage->id)->sole();
+        $secondToken = PackagePickupToken::query()->whereBelongsTo($secondPackage)->sole();
+        $this->assertNotSame($firstPackage->ulid, $secondPackage->ulid);
+        $this->assertNotSame($firstPackage->tracking_code, $secondPackage->tracking_code);
+        $this->assertNotSame($firstToken->token_hash, $secondToken->token_hash);
+        $this->assertSame('NUEVO-2', $secondPackage->storage_code);
+        $this->assertDatabaseHas('package_events', [
+            'package_id' => $secondPackage->id,
+            'event' => PackageEventType::PackageCreated->value,
+        ]);
     }
 
     public function test_required_contact_fields_are_validated(): void

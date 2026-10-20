@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Packages;
 
+use App\Enums\PackagePaymentStatus;
 use App\Models\Package;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -44,6 +45,13 @@ class StorePackageRequest extends FormRequest
             'recipient_phone' => ['required', 'string', 'max:30'],
             'description' => ['nullable', 'string', 'max:1000'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'payment_status' => [
+                'required',
+                Rule::enum(PackagePaymentStatus::class)->only([
+                    PackagePaymentStatus::Pending,
+                    PackagePaymentStatus::Paid,
+                ]),
+            ],
         ];
     }
 
@@ -51,6 +59,7 @@ class StorePackageRequest extends FormRequest
     {
         $this->merge([
             'storage_code' => $this->string('storage_code')->trim()->upper()->toString(),
+            'payment_status' => $this->input('payment_status', PackagePaymentStatus::Pending->value),
         ]);
     }
 }

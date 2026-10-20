@@ -43,7 +43,10 @@
                             <article class="space-y-4 p-5">
                                 <div class="flex items-start justify-between gap-3">
                                     <a href="{{ route('packages.show', $package) }}" class="font-mono text-sm font-bold text-tik-red-dark hover:text-tik-red">{{ $package->tracking_code }}</a>
-                                    <x-package-status-badge :status="$package->status" />
+                                    <div class="flex flex-col items-end gap-2">
+                                        <x-package-status-badge :status="$package->status" />
+                                        <x-package-payment-status-badge :status="$package->payment_status" />
+                                    </div>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4 text-sm">
                                     <div><p class="text-xs font-medium text-gray-500">Remitente</p><p class="mt-1 font-medium text-tik-ink">{{ $package->sender_name }}</p></div>
@@ -63,7 +66,7 @@
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-tik-gray">
                                 <tr>
-                                    @foreach (['Código', 'Categoría', 'Ubicación', 'Costo', 'Remitente', 'Destinatario', 'Estado', 'Fecha', 'Acción'] as $heading)
+                                    @foreach (['Código', 'Categoría', 'Ubicación', 'Costo', 'Remitente', 'Destinatario', 'Estado', 'Pago', 'Fecha', 'Acción'] as $heading)
                                         <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">{{ $heading }}</th>
                                     @endforeach
                                 </tr>
@@ -78,6 +81,7 @@
                                         <td class="px-5 py-4 text-sm font-medium text-tik-ink">{{ $package->sender_name }}</td>
                                         <td class="px-5 py-4 text-sm font-medium text-tik-ink">{{ $package->recipient_name }}</td>
                                         <td class="whitespace-nowrap px-5 py-4"><x-package-status-badge :status="$package->status" /></td>
+                                        <td class="whitespace-nowrap px-5 py-4"><x-package-payment-status-badge :status="$package->payment_status" /></td>
                                         <td class="whitespace-nowrap px-5 py-4 text-sm text-gray-600">{{ $package->received_at?->format('d/m/Y H:i') }}</td>
                                         <td class="whitespace-nowrap px-5 py-4"><a href="{{ route('packages.show', $package) }}" class="text-sm font-semibold text-tik-red-dark hover:text-tik-red">Ver</a></td>
                                     </tr>

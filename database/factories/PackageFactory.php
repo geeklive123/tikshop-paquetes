@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\PackagePaymentStatus;
 use App\Enums\PackageStatus;
 use App\Models\Branch;
 use App\Models\Company;
@@ -46,6 +47,10 @@ class PackageFactory extends Factory
             'description' => fake()->optional()->sentence(),
             'notes' => fake()->optional()->sentence(),
             'status' => PackageStatus::Received,
+            'payment_status' => PackagePaymentStatus::Pending,
+            'paid_amount' => null,
+            'paid_at' => null,
+            'paid_by' => null,
             'received_at' => $receivedAt,
             'ready_at' => null,
             'delivered_at' => null,

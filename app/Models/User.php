@@ -34,6 +34,12 @@ class User extends Authenticatable
         return $this->hasMany(PackageEvent::class);
     }
 
+    /** @return HasMany<Package, $this> */
+    public function paidPackages(): HasMany
+    {
+        return $this->hasMany(Package::class, 'paid_by');
+    }
+
     /** @return HasMany<PrintJob, $this> */
     public function requestedPrintJobs(): HasMany
     {

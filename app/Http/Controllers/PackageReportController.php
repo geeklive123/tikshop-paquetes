@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Reports\GetPackageReportAction;
 use App\Actions\Reports\ResolveReportDateRangeAction;
+use App\Enums\PackagePaymentStatus;
 use App\Enums\PackageStatus;
 use App\Http\Requests\Reports\PackageReportRequest;
 use App\Models\Branch;
@@ -29,6 +30,7 @@ class PackageReportController extends Controller
             'range' => $range,
             'filters' => $filters,
             'statuses' => PackageStatus::cases(),
+            'paymentStatuses' => PackagePaymentStatus::cases(),
             'sellers' => Seller::query()->where('company_id', $user->company_id)->orderBy('name')->get(['id', 'name', 'business_name']),
             'categories' => PackageCategory::query()->where('company_id', $user->company_id)->orderBy('name')->get(['id', 'name']),
             'branches' => Branch::query()->where('company_id', $user->company_id)->orderBy('name')->get(['id', 'name']),

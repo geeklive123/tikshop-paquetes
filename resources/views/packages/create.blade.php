@@ -52,12 +52,16 @@
                 <section class="rounded-2xl border border-gray-200 border-t-tik-box bg-white p-5 shadow-sm sm:border-t-4 sm:p-6">
                     <div class="mb-5"><p class="text-xs font-bold uppercase tracking-wider text-tik-red-dark">DATOS DE QUIEN RECOGERÁ</p><p class="mt-1 text-sm text-gray-500">Persona que recogerá el paquete.</p></div>
                     <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-                        <div><x-input-label for="recipient_name" value="Nombre" /><x-text-input id="recipient_name" name="recipient_name" type="text" class="mt-1.5 block w-full" :value="old('recipient_name')" required /><x-input-error :messages="$errors->get('recipient_name')" class="mt-2" /></div>
-                        <div><x-input-label for="recipient_phone" value="Celular" /><x-text-input id="recipient_phone" name="recipient_phone" type="text" inputmode="tel" class="mt-1.5 block w-full" :value="old('recipient_phone')" required /><x-input-error :messages="$errors->get('recipient_phone')" class="mt-2" /></div>
+                        <div><x-input-label for="recipient_name" value="Nombre" /><x-text-input id="recipient_name" name="recipient_name" type="text" class="mt-1.5 block w-full" :value="old('recipient_name', $recipientPrefill['name'] ?? '')" required /><x-input-error :messages="$errors->get('recipient_name')" class="mt-2" /></div>
+                        <div><x-input-label for="recipient_phone" value="Celular" /><x-text-input id="recipient_phone" name="recipient_phone" type="text" inputmode="tel" class="mt-1.5 block w-full" :value="old('recipient_phone', $recipientPrefill['phone'] ?? '')" required /><x-input-error :messages="$errors->get('recipient_phone')" class="mt-2" /></div>
                     </div>
                 </section>
 
-                <section x-data="{ selected: @js((string) old('package_category_id')), prices: @js($categories->mapWithKeys(fn ($category) => [(string) $category->id => number_format((float) $category->price, 2)])) }" class="rounded-2xl border border-gray-200 border-t-tik-box bg-white p-5 shadow-sm sm:border-t-4 sm:p-6">
+                <section x-data="{
+                    selected: @js((string) old('package_category_id')),
+                    categories: @js($categories->map(fn ($category) => ['id' => (string) $category->id, 'price' => number_format((float) $category->price, 2)])->values()),
+                    get chosenCategory() { return this.categories.find((category) => category.id === this.selected); }
+                }" class="rounded-2xl border border-gray-200 border-t-tik-box bg-white p-5 shadow-sm sm:border-t-4 sm:p-6">
                     <div class="mb-5">
                         <p class="text-xs font-bold uppercase tracking-wider text-tik-red-dark">TAMAÑO Y ALMACENAJE</p>
                         <p class="mt-1 text-sm text-gray-500">Selecciona la categoría y registra la ubicación física.</p>
@@ -87,9 +91,24 @@
                         </div>
                         <div class="rounded-xl bg-red-50 px-4 py-3">
                             <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">Costo seleccionado</p>
-                            <p class="mt-1 text-xl font-bold text-tik-red-dark" x-text="selected && prices[selected] ? `Bs ${prices[selected]}` : 'Selecciona una categoría'"></p>
+                            <p class="mt-1 text-xl font-bold text-tik-red-dark" x-text="chosenCategory ? `Bs ${chosenCategory.price}` : 'Selecciona una categoría'"></p>
                         </div>
                     </div>
+                    <fieldset class="mt-5">
+                        <legend class="text-sm font-semibold text-tik-ink">Estado de pago</legend>
+                        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-900">
+                                <input type="radio" name="payment_status" value="pending" class="border-gray-300 text-tik-red focus:ring-tik-red" @checked(old('payment_status', 'pending') === 'pending')>
+                                Por pagar
+                            </label>
+                            <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-900">
+                                <input type="radio" name="payment_status" value="paid" class="border-gray-300 text-green-600 focus:ring-green-600" @checked(old('payment_status') === 'paid')>
+                                Pagado
+                            </label>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500">El monto pagado se calcula en el servidor con la tarifa vigente del paquete.</p>
+                        <x-input-error :messages="$errors->get('payment_status')" class="mt-2" />
+                    </fieldset>
                 </section>
 
                 <section class="rounded-2xl border border-gray-200 border-t-tik-ink bg-white p-5 shadow-sm sm:border-t-4 sm:p-6">

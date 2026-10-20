@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Actions\Packages\CalculatePackageStorageAmountAction;
 use App\Enums\PackageEventType;
+use App\Enums\PackagePaymentStatus;
 use App\Enums\PackageStatus;
 use App\Enums\UserRole;
 use App\Models\Branch;
@@ -214,6 +215,10 @@ class DeliverPackageTest extends TestCase
         $package = Package::factory()->forBranch($branch)->withStatus(PackageStatus::ReadyForPickup)->create([
             'ready_at' => now(),
             'received_by' => $user->id,
+            'payment_status' => PackagePaymentStatus::Paid,
+            'paid_amount' => '1.00',
+            'paid_at' => now(),
+            'paid_by' => $user->id,
         ]);
         $rawToken = str_repeat('B', 64);
         $pickupToken = PackagePickupToken::factory()->for($package)->create([

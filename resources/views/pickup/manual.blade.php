@@ -12,7 +12,10 @@
                 @if ($package)
                     <div class="flex flex-col gap-3 border-b border-gray-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
                         <p class="font-mono text-2xl font-bold text-tik-red-dark">{{ $package->tracking_code }}</p>
-                        <x-package-status-badge :status="$package->status" />
+                        <div class="flex flex-col items-start gap-2 sm:items-end">
+                            <x-package-status-badge :status="$package->status" />
+                            <x-package-payment-status-badge :status="$package->payment_status" />
+                        </div>
                     </div>
                     <dl class="grid grid-cols-1 gap-5 py-6 sm:grid-cols-2">
                         <div><dt class="text-sm font-medium text-gray-500">Ubicación</dt><dd class="mt-1 font-mono text-xl font-bold text-tik-ink">{{ $package->storage_code ?? 'Sin registrar' }}</dd></div>
@@ -22,7 +25,8 @@
                         <div><dt class="text-sm font-medium text-gray-500">Remitente</dt><dd class="mt-1 font-semibold text-tik-ink">{{ $package->sender_name }}</dd></div>
                         <div><dt class="text-sm font-medium text-gray-500">Descripción</dt><dd class="mt-1 text-sm text-tik-ink">{{ $package->description ?: 'Sin descripción' }}</dd></div>
                     </dl>
-                    @if ($package->status === \App\Enums\PackageStatus::ReadyForPickup)
+                    <x-package-pickup-payment-summary :package="$package" :storage-amount="$storageAmount" />
+                    @if ($package->status === \App\Enums\PackageStatus::ReadyForPickup && $package->payment_status !== \App\Enums\PackagePaymentStatus::Pending)
                         @can('deliver', $package)
                             <form method="POST" action="{{ route('packages.deliver', $package) }}">
                                 @csrf

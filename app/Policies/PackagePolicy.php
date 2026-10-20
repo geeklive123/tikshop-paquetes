@@ -63,6 +63,24 @@ class PackagePolicy
         return $this->view($user, $package);
     }
 
+    public function markPaid(User $user, Package $package): Response
+    {
+        return $this->deliver($user, $package);
+    }
+
+    public function regularizeHistoricalPayment(User $user, Package $package): Response
+    {
+        $viewResponse = $this->view($user, $package);
+
+        if (! $viewResponse->allowed()) {
+            return $viewResponse;
+        }
+
+        return in_array($user->role, [UserRole::Owner, UserRole::Admin], true)
+            ? Response::allow()
+            : Response::deny();
+    }
+
     public function update(User $user, Package $package): Response
     {
         return $this->manage($user, $package);

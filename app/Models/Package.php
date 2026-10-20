@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PackagePaymentStatus;
 use App\Enums\PackageStatus;
 use Database\Factories\PackageFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -23,6 +24,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'storage_price',
     'weekly_storage_increment',
     'final_storage_amount',
+    'payment_status',
+    'paid_amount',
+    'paid_at',
+    'paid_by',
     'sender_name',
     'sender_phone',
     'recipient_name',
@@ -97,6 +102,12 @@ class Package extends Model
         return $this->belongsTo(User::class, 'cancelled_by');
     }
 
+    /** @return BelongsTo<User, $this> */
+    public function paidBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'paid_by');
+    }
+
     /** @return HasMany<PackagePickupToken, $this> */
     public function pickupTokens(): HasMany
     {
@@ -163,13 +174,16 @@ class Package extends Model
     {
         return [
             'status' => PackageStatus::class,
+            'payment_status' => PackagePaymentStatus::class,
             'storage_price' => 'decimal:2',
             'weekly_storage_increment' => 'decimal:2',
             'final_storage_amount' => 'decimal:2',
+            'paid_amount' => 'decimal:2',
             'received_at' => 'datetime',
             'ready_at' => 'datetime',
             'delivered_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'paid_at' => 'datetime',
         ];
     }
 }

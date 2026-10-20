@@ -3,6 +3,7 @@
 namespace App\Actions\Reports;
 
 use App\Actions\Packages\CalculatePackageStorageAmountAction;
+use App\Enums\PackagePaymentStatus;
 use App\Enums\PackageStatus;
 use App\Models\Package;
 use App\Models\User;
@@ -21,6 +22,7 @@ class GetPackageReportAction
     public function execute(User $user, CarbonInterface $start, CarbonInterface $end, array $filters, ?int $sellerId = null): LengthAwarePaginator
     {
         $status = PackageStatus::tryFrom((string) ($filters['status'] ?? ''));
+        $paymentStatus = PackagePaymentStatus::tryFrom((string) ($filters['payment_status'] ?? ''));
         $trackingCode = trim((string) ($filters['tracking_code'] ?? ''));
         $recipient = trim((string) ($filters['recipient'] ?? ''));
 
@@ -32,9 +34,10 @@ class GetPackageReportAction
             ->when(isset($filters['category_id']), fn (Builder $query): Builder => $query->where('package_category_id', (int) $filters['category_id']))
             ->when(isset($filters['branch_id']), fn (Builder $query): Builder => $query->where('branch_id', (int) $filters['branch_id']))
             ->withStatus($status)
+            ->when($paymentStatus, fn (Builder $query): Builder => $query->where('payment_status', $paymentStatus))
             ->when($trackingCode !== '', fn (Builder $query): Builder => $query->where('tracking_code', 'like', "%{$trackingCode}%"))
             ->when($recipient !== '', fn (Builder $query): Builder => $query->where('recipient_name', 'like', "%{$recipient}%"))
-            ->with(['seller:id,name,business_name', 'category:id,name', 'branch:id,name'])
+            ->with(['seller:id,name,business_name', 'category:id,name', 'branch:id,name', 'paidBy:id,name'])
             ->orderByDesc('received_at')
             ->orderByDesc('id')
             ->paginate(15)

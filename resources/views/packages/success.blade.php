@@ -41,6 +41,8 @@
                 </div>
 
                 <div class="grid grid-cols-1 gap-3 border-t border-gray-100 p-5 print:hidden sm:grid-cols-2 sm:p-8">
+                    <a href="{{ route('packages.create') }}" class="inline-flex items-center justify-center rounded-xl bg-tik-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-gray-800">Registrar otro paquete</a>
+                    <a href="{{ route('packages.create', ['recipient_from' => $package->ulid]) }}" class="inline-flex items-center justify-center rounded-xl border border-tik-ink bg-white px-4 py-3 text-sm font-semibold text-tik-ink transition hover:bg-gray-50">Registrar otro para el mismo cliente</a>
                     @if ($hasShareablePickupQr)
                         <button
                             type="button"
@@ -64,7 +66,7 @@
                 </div>
                 @if ($hasShareablePickupQr)
                     <div class="border-t border-gray-100 px-5 pb-5 print:hidden sm:px-8 sm:pb-8">
-                        <p class="text-xs text-gray-500">En dispositivos compatibles se comparte el PNG directamente. Como respaldo, se descarga la imagen y se abre WhatsApp para adjuntarla.</p>
+                        <p class="text-xs text-gray-500">Se descarga el PNG y se abre WhatsApp mediante su sitio web. Adjunta manualmente la imagen al chat antes de enviarla.</p>
                         <div data-pickup-qr-share-status class="mt-3 hidden rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900" role="status" aria-live="polite"></div>
                     </div>
                 @endif

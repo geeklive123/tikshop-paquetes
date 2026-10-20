@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PackagePaymentStatus;
 use App\Enums\PackageStatus;
 use App\Enums\UserRole;
 use App\Models\Company;
@@ -38,7 +39,8 @@ class ReportManagementTest extends TestCase
         $response = $this->actingAs($user)->get(route('reports.index'));
 
         $response->assertSee('Reportes');
-        $response->assertSee('Total de almacenaje asociado');
+        $response->assertSee('Monto pagado en el período');
+        $response->assertSee('Monto pendiente con recargo vigente');
     }
 
     public function test_operator_receives_forbidden_and_does_not_see_reports_menu(): void
@@ -60,10 +62,10 @@ class ReportManagementTest extends TestCase
         $response = $this->actingAs($owner)->get(route('reports.index', ['period' => 'today']));
 
         $response->assertViewHas('metrics', fn (array $metrics): bool => $metrics['received'] === 1
-            && $metrics['storageAmount'] === 8.0);
+            && $metrics['pendingAmount'] === 8.0);
     }
 
-    public function test_summary_distinguishes_base_surcharge_and_total_without_calling_it_collected(): void
+    public function test_summary_calculates_the_current_pending_amount_with_surcharge(): void
     {
         $this->travelTo('2026-10-08 12:00:00');
         $owner = User::factory()->withRole(UserRole::Owner)->create();
@@ -75,12 +77,9 @@ class ReportManagementTest extends TestCase
 
         $response = $this->actingAs($owner)->get(route('reports.index', ['period' => 'this_month']));
 
-        $response->assertViewHas('metrics', fn (array $metrics): bool => $metrics['baseStorageAmount'] === 2.0
-            && $metrics['storageSurchargeAmount'] === 1.0
-            && $metrics['storageAmount'] === 3.0);
-        $response->assertSee('Precio base asociado');
-        $response->assertSee('Recargo asociado');
-        $response->assertSee('No representan dinero cobrado');
+        $response->assertViewHas('metrics', fn (array $metrics): bool => $metrics['pendingAmount'] === 3.0);
+        $response->assertSee('Monto pendiente con recargo vigente');
+        $response->assertSee('Bs 3.00');
     }
 
     /** @return array<string, array{string, string, string}> */
@@ -147,20 +146,26 @@ class ReportManagementTest extends TestCase
         $firstSeller = Seller::factory()->for($company)->create();
         $secondSeller = Seller::factory()->for($company)->create();
         foreach ([
-            [PackageStatus::Received, '10.00', $firstSeller],
-            [PackageStatus::ReadyForPickup, '20.00', $firstSeller],
-            [PackageStatus::Delivered, '30.00', $secondSeller],
-            [PackageStatus::Cancelled, '40.00', $secondSeller],
-        ] as [$status, $price, $seller]) {
-            Package::factory()->for($company)->for($seller)->withStatus($status)->create(['received_at' => '2026-09-15 12:00:00', 'storage_price' => $price]);
+            [PackageStatus::Received, PackagePaymentStatus::Pending, '10.00', $firstSeller],
+            [PackageStatus::ReadyForPickup, PackagePaymentStatus::Pending, '20.00', $firstSeller],
+            [PackageStatus::Delivered, PackagePaymentStatus::Legacy, '30.00', $secondSeller],
+            [PackageStatus::Cancelled, PackagePaymentStatus::Legacy, '40.00', $secondSeller],
+        ] as [$status, $paymentStatus, $price, $seller]) {
+            Package::factory()->for($company)->for($seller)->withStatus($status)->create([
+                'received_at' => '2026-09-15 12:00:00',
+                'delivered_at' => $status === PackageStatus::Delivered ? '2026-09-15 15:00:00' : null,
+                'cancelled_at' => $status === PackageStatus::Cancelled ? '2026-09-15 16:00:00' : null,
+                'payment_status' => $paymentStatus,
+                'storage_price' => $price,
+            ]);
         }
 
         $response = $this->actingAs($owner)->get(route('reports.index', ['date_from' => '2026-09-01', 'date_to' => '2026-09-30']));
 
         $response->assertViewHas('metrics', fn (array $metrics): bool => $metrics === [
-            'received' => 4, 'pending' => 2, 'delivered' => 1, 'cancelled' => 1,
-            'baseStorageAmount' => 60.0, 'storageSurchargeAmount' => 0.0,
-            'storageAmount' => 60.0, 'activeSellers' => 2,
+            'received' => 4, 'delivered' => 1, 'cancelled' => 1,
+            'paid' => 0, 'paidAmount' => 0.0, 'pending' => 2,
+            'pendingAmount' => 30.0, 'legacy' => 2, 'activeSellers' => 2,
         ]);
     }
 

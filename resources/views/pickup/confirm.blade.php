@@ -12,7 +12,10 @@
             <section class="rounded-2xl border border-red-200 bg-white p-5 shadow-sm sm:p-7">
                 <div class="flex flex-col gap-3 border-b border-gray-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
                     <p class="font-mono text-2xl font-bold text-tik-red-dark">{{ $package->tracking_code }}</p>
-                    <x-package-status-badge :status="$package->status" />
+                    <div class="flex flex-col items-start gap-2 sm:items-end">
+                        <x-package-status-badge :status="$package->status" />
+                        <x-package-payment-status-badge :status="$package->payment_status" />
+                    </div>
                 </div>
 
                 <dl class="grid grid-cols-1 gap-5 py-6 sm:grid-cols-2">
@@ -29,8 +32,10 @@
                     <div><dt class="text-sm font-medium text-gray-500">Descripción</dt><dd class="mt-1 whitespace-pre-line text-sm text-tik-ink">{{ $package->description ?: 'Sin descripción' }}</dd></div>
                 </dl>
 
+                <x-package-pickup-payment-summary :package="$package" :storage-amount="$storageAmount" />
+
                 <div class="grid grid-cols-1 gap-3 border-t border-gray-100 pt-6 sm:grid-cols-2">
-                    @if ($package->status === \App\Enums\PackageStatus::ReadyForPickup)
+                    @if ($package->status === \App\Enums\PackageStatus::ReadyForPickup && $package->payment_status !== \App\Enums\PackagePaymentStatus::Pending)
                         @can('deliver', $package)
                             <form method="POST" action="{{ route('pickup.deliver') }}">
                                 @csrf

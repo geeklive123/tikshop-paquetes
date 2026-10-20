@@ -11,4 +11,6 @@ enum PackageEventType: string
     case PackageDelivered = 'package_delivered';
     case PackageUpdated = 'package_updated';
     case PackageCancelled = 'package_cancelled';
+    case PackagePaymentMarkedPaid = 'package_payment_marked_paid';
+    case PackageHistoricalPaymentRegularized = 'package_historical_payment_regularized';
 }

@@ -3,6 +3,7 @@
 namespace App\Actions\Packages;
 
 use App\Enums\PackageEventType;
+use App\Enums\PackagePaymentStatus;
 use App\Enums\PackageStatus;
 use App\Models\Package;
 use App\Models\PackageCategory;
@@ -17,8 +18,10 @@ class CreatePackageAction
 {
     private const int MaximumDailySequence = 9999;
 
+    public function __construct(private MarkPackageAsPaidAction $markPackageAsPaid) {}
+
     /**
-     * @param  array{seller_id: int|string, package_category_id: int|string, storage_code: string, recipient_name: string, recipient_phone: string, description?: string|null, notes?: string|null}  $data
+     * @param  array{seller_id: int|string, package_category_id: int|string, storage_code: string, recipient_name: string, recipient_phone: string, payment_status: string, description?: string|null, notes?: string|null}  $data
      */
     public function execute(User $user, array $data): Package
     {
@@ -57,6 +60,7 @@ class CreatePackageAction
                 'description' => $data['description'] ?? null,
                 'notes' => $data['notes'] ?? null,
                 'status' => PackageStatus::Received,
+                'payment_status' => PackagePaymentStatus::Pending,
                 'received_at' => $receivedAt,
                 'received_by' => $user->id,
             ]);
@@ -66,6 +70,10 @@ class CreatePackageAction
                 'user_id' => $user->id,
                 'event' => PackageEventType::PackageCreated,
             ]);
+
+            if (PackagePaymentStatus::from($data['payment_status']) === PackagePaymentStatus::Paid) {
+                $package = $this->markPackageAsPaid->execute($user, $package);
+            }
 
             return $package;
         }, 5);

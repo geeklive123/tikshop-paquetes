@@ -16,11 +16,15 @@
             <x-input-error :messages="$errors->get('package')" />
             <x-input-error :messages="$errors->get('pickup_qr')" />
             <x-input-error :messages="$errors->get('reason')" />
+            <x-input-error :messages="$errors->get('payment')" />
 
             <section class="rounded-2xl border border-gray-200 border-l-4 border-l-tik-red bg-white p-5 shadow-sm sm:p-6">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div><p class="text-xs font-semibold uppercase tracking-wider text-gray-500">Código de seguimiento</p><p class="mt-2 font-mono text-2xl font-bold text-tik-red-dark sm:text-3xl">{{ $package->tracking_code }}</p></div>
-                    <x-package-status-badge :status="$package->status" />
+                    <div class="flex flex-col items-start gap-2 sm:items-end">
+                        <x-package-status-badge :status="$package->status" />
+                        <x-package-payment-status-badge :status="$package->payment_status" />
+                    </div>
                 </div>
                 <dl class="mt-6 grid grid-cols-1 gap-5 border-t border-gray-100 pt-5 sm:grid-cols-4">
                     <div><dt class="text-sm font-medium text-gray-500">Fecha de recepción</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->received_at?->format('d/m/Y H:i') ?? 'Sin registrar' }}</dd></div>
@@ -28,11 +32,31 @@
                     <div><dt class="text-sm font-medium text-gray-500">Sucursal</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->branch?->name ?? 'Sin registrar' }}</dd></div>
                     <div><dt class="text-sm font-medium text-gray-500">Categoría / tamaño</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->category?->name ?? 'Sin categoría' }}</dd></div>
                     <div><dt class="text-sm font-medium text-gray-500">Código / ubicación</dt><dd class="mt-1 font-mono text-sm font-bold text-tik-ink">{{ $package->storage_code ?? 'Sin registrar' }}</dd></div>
-                    <div><dt class="text-sm font-medium text-gray-500">Precio base</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">Bs {{ $storageAmount['baseAmount'] }}</dd></div>
-                    <div><dt class="text-sm font-medium text-gray-500">Tiempo almacenado</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $storageAmount['daysStored'] }} {{ $storageAmount['daysStored'] === 1 ? 'día' : 'días' }}</dd></div>
-                    <div><dt class="text-sm font-medium text-gray-500">Recargo semanal</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">Bs {{ $storageAmount['surchargeAmount'] }}</dd></div>
-                    <div class="rounded-xl bg-red-50 px-4 py-3"><dt class="text-xs font-bold uppercase tracking-wider text-tik-red-dark">Total actual</dt><dd class="mt-1 text-lg font-bold text-tik-red-dark">Bs {{ $storageAmount['totalAmount'] }}</dd></div>
                 </dl>
+
+                <div class="mt-6 rounded-xl border p-4 {{ $package->payment_status === \App\Enums\PackagePaymentStatus::Paid ? 'border-green-200 bg-green-50' : ($package->payment_status === \App\Enums\PackagePaymentStatus::Pending ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50') }}">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-wider text-gray-600">Estado de pago</p>
+                            <div class="mt-2"><x-package-payment-status-badge :status="$package->payment_status" /></div>
+                        </div>
+                        @if ($package->payment_status === \App\Enums\PackagePaymentStatus::Pending)
+                            <div class="sm:text-right"><p class="text-sm text-red-800">Total pendiente actual</p><p class="text-2xl font-bold text-red-900">Bs {{ $storageAmount['totalAmount'] }}</p></div>
+                        @elseif ($package->payment_status === \App\Enums\PackagePaymentStatus::Paid)
+                            <div class="sm:text-right"><p class="text-sm text-green-800">Monto pagado</p><p class="text-2xl font-bold text-green-900">Bs {{ $package->paid_amount }}</p><p class="mt-1 text-xs text-green-800">{{ $package->paid_at?->format('d/m/Y H:i') }} · {{ $package->paidBy?->name ?? 'Usuario no disponible' }}</p></div>
+                        @else
+                            <p class="max-w-md text-sm text-gray-600">Este registro histórico no genera deuda ni se incluye como pago.</p>
+                        @endif
+                    </div>
+                    @if ($package->payment_status === \App\Enums\PackagePaymentStatus::Pending)
+                        @can('markPaid', $package)
+                            <form method="POST" action="{{ route('packages.payment.store', $package) }}" class="mt-4">
+                                @csrf
+                                <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl bg-green-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-green-800 sm:w-auto">MARCAR COMO PAGADO</button>
+                            </form>
+                        @endcan
+                    @endif
+                </div>
 
                 @if ($package->status === \App\Enums\PackageStatus::Cancelled)
                     <div class="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
@@ -43,12 +67,16 @@
                 @endif
 
                 @if ($package->status === \App\Enums\PackageStatus::ReadyForPickup)
-                    @can('deliver', $package)
-                        <form method="POST" action="{{ route('packages.deliver', $package) }}" class="mt-6 border-t border-gray-100 pt-5">
-                            @csrf
-                            <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl bg-tik-red px-5 py-3 text-sm font-bold text-white transition hover:bg-tik-red-dark sm:w-auto">CONFIRMAR ENTREGA</button>
-                        </form>
-                    @endcan
+                    @if ($package->payment_status === \App\Enums\PackagePaymentStatus::Pending)
+                        <div class="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-900">Este paquete tiene almacenaje pendiente de pago.</div>
+                    @else
+                        @can('deliver', $package)
+                            <form method="POST" action="{{ route('packages.deliver', $package) }}" class="mt-6 border-t border-gray-100 pt-5">
+                                @csrf
+                                <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl bg-tik-red px-5 py-3 text-sm font-bold text-white transition hover:bg-tik-red-dark sm:w-auto">CONFIRMAR ENTREGA</button>
+                            </form>
+                        @endcan
+                    @endif
                 @endif
 
                 @if (! in_array($package->status, [\App\Enums\PackageStatus::Delivered, \App\Enums\PackageStatus::Cancelled], true))

@@ -22,31 +22,29 @@
                 <x-input-error :messages="$errors->all()" />
             </section>
 
-            @php
-                $cards = [
-                    ['label' => 'Paquetes recibidos', 'value' => $metrics['received']],
-                    ['label' => 'Pendientes', 'value' => $metrics['pending']],
-                    ['label' => 'Entregados', 'value' => $metrics['delivered']],
-                    ['label' => 'Anulados', 'value' => $metrics['cancelled']],
-                    ['label' => 'Precio base asociado', 'value' => 'Bs '.number_format($metrics['baseStorageAmount'], 2)],
-                    ['label' => 'Recargo asociado', 'value' => 'Bs '.number_format($metrics['storageSurchargeAmount'], 2)],
-                    ['label' => 'Total de almacenaje asociado', 'value' => 'Bs '.number_format($metrics['storageAmount'], 2)],
-                    ['label' => 'Vendedores con actividad', 'value' => $metrics['activeSellers']],
-                ];
-            @endphp
-            <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Indicadores del período">
-                @foreach ($cards as $card)
-                    <article class="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                        <div class="absolute inset-y-0 left-0 w-1 bg-tik-red"></div>
-                        <p class="text-sm font-medium text-gray-500">{{ $card['label'] }}</p>
-                        <p class="mt-3 text-3xl font-bold tracking-tight text-tik-ink">{{ $card['value'] }}</p>
-                    </article>
-                @endforeach
+            <section class="space-y-3" aria-label="Indicadores operativos del período">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-gray-600">Operación</h2>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    @foreach ([['Paquetes recibidos', $metrics['received']], ['Entregados', $metrics['delivered']], ['Anulados', $metrics['cancelled']], ['Vendedores con actividad', $metrics['activeSellers']]] as [$label, $value])
+                        <article class="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"><div class="absolute inset-y-0 left-0 w-1 bg-tik-red"></div><p class="text-sm font-medium text-gray-500">{{ $label }}</p><p class="mt-3 text-3xl font-bold tracking-tight text-tik-ink">{{ $value }}</p></article>
+                    @endforeach
+                </div>
             </section>
 
-            <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-                Los montos suman precio base y recargos actuales o finales de paquetes no anulados recibidos en el período. Para entregados se usa el total histórico congelado; para pendientes, el total vigente. No representan dinero cobrado, utilidad ni comisión.
-            </div>
+            <section class="space-y-3" aria-label="Indicadores financieros">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-gray-600">Pagos</h2>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <article class="rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm"><p class="text-sm font-medium text-green-800">Paquetes pagados en el período</p><p class="mt-3 text-3xl font-bold text-green-900">{{ $metrics['paid'] }}</p></article>
+                    <article class="rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm"><p class="text-sm font-medium text-green-800">Monto pagado en el período</p><p class="mt-3 text-3xl font-bold text-green-900">Bs {{ number_format($metrics['paidAmount'], 2) }}</p></article>
+                </div>
+                <h2 class="pt-3 text-sm font-bold uppercase tracking-wider text-gray-600">Pendiente actual</h2>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <article class="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm"><p class="text-sm font-medium text-red-800">Paquetes por pagar</p><p class="mt-3 text-3xl font-bold text-red-900">{{ $metrics['pending'] }}</p></article>
+                    <article class="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm"><p class="text-sm font-medium text-red-800">Monto pendiente con recargo vigente</p><p class="mt-3 text-3xl font-bold text-red-900">Bs {{ number_format($metrics['pendingAmount'], 2) }}</p></article>
+                </div>
+                <h2 class="pt-3 text-sm font-bold uppercase tracking-wider text-gray-600">Histórico</h2>
+                <article class="rounded-2xl border border-gray-200 bg-gray-50 p-5 shadow-sm"><p class="text-sm font-medium text-gray-700">Paquetes sin seguimiento financiero</p><p class="mt-3 text-3xl font-bold text-gray-800">{{ $metrics['legacy'] }}</p><p class="mt-2 text-sm text-gray-600">No cuentan como deuda ni como pago.</p></article>
+            </section>
         </div>
     </div>
 </x-app-layout>

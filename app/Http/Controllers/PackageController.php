@@ -78,11 +78,24 @@ class PackageController extends Controller
         $preselectedSellerId = $sellers
             ->firstWhere('ulid', $request->string('seller')->toString())
             ?->id;
+        $recipientPrefill = [];
+
+        if ($request->filled('recipient_from')) {
+            $sourcePackage = Package::query()
+                ->forCompany($user->company)
+                ->where('ulid', $request->string('recipient_from')->toString())
+                ->firstOrFail(['recipient_name', 'recipient_phone']);
+            $recipientPrefill = [
+                'name' => $sourcePackage->recipient_name,
+                'phone' => $sourcePackage->recipient_phone,
+            ];
+        }
 
         return view('packages.create', [
             'categories' => $categories,
             'sellers' => $sellers,
             'preselectedSellerId' => $preselectedSellerId,
+            'recipientPrefill' => $recipientPrefill,
         ]);
     }
 
@@ -106,6 +119,7 @@ class PackageController extends Controller
                 'recipient_phone',
                 'description',
                 'notes',
+                'payment_status',
             ]),
         );
         $pickupTokenResult = $generatePickupToken->execute($user, $package);
@@ -157,7 +171,7 @@ class PackageController extends Controller
     ): View {
         Gate::authorize('view', $package);
 
-        $package->load(['branch:id,name', 'category:id,name', 'receivedBy:id,name', 'cancelledBy:id,name', 'seller:id,ulid,name,business_name']);
+        $package->load(['branch:id,name', 'category:id,name', 'receivedBy:id,name', 'cancelledBy:id,name', 'paidBy:id,name', 'seller:id,ulid,name,business_name']);
         $defaultPrinter = Printer::query()
             ->where('company_id', $package->company_id)
             ->where('branch_id', $package->branch_id)

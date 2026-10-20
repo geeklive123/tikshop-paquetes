@@ -3,6 +3,7 @@
 namespace App\Actions\Packages;
 
 use App\Enums\PackageEventType;
+use App\Enums\PackagePaymentStatus;
 use App\Enums\PackageStatus;
 use App\Models\Package;
 use App\Models\PackageEvent;
@@ -134,6 +135,12 @@ class DeliverPackageAction
 
         if ($package->status !== PackageStatus::ReadyForPickup) {
             throw ValidationException::withMessages(['token' => 'Este paquete todavía no está listo para entregarse.']);
+        }
+
+        if ($package->payment_status === PackagePaymentStatus::Pending) {
+            throw ValidationException::withMessages([
+                'token' => 'Este paquete tiene almacenaje pendiente de pago.',
+            ]);
         }
     }
 }

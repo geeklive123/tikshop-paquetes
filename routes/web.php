@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PackageCancellationController;
 use App\Http\Controllers\PackageCategoryController;
 use App\Http\Controllers\PackageController;
+use App\Http\Controllers\PackagePaymentController;
 use App\Http\Controllers\PackagePickupQrImageController;
 use App\Http\Controllers\PackagePickupTokenController;
 use App\Http\Controllers\PackagePrintJobController;
@@ -62,6 +63,8 @@ Route::middleware(['auth', 'active', 'sensitive'])->group(function () {
         ->name('packages.print-ticket');
     Route::post('/packages/{package}/deliver', [PickupDeliveryController::class, 'manually'])
         ->name('packages.deliver');
+    Route::post('/packages/{package}/payment', PackagePaymentController::class)
+        ->name('packages.payment.store');
     Route::post('/packages/{package}/cancel', PackageCancellationController::class)
         ->name('packages.cancel');
     Route::resource('packages', PackageController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update']);

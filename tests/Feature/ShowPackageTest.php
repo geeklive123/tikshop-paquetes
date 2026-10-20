@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\PackagePaymentStatus;
 use App\Enums\PackageStatus;
 use App\Enums\UserRole;
 use App\Models\Branch;
@@ -70,11 +71,8 @@ class ShowPackageTest extends TestCase
 
         $response = $this->actingAs($user)->get(route('packages.show', $package));
 
-        $response->assertSee('Precio base');
-        $response->assertSee('15 días');
-        $response->assertSee('Recargo semanal');
-        $response->assertSee('Bs 2.00');
-        $response->assertSee('Total actual');
+        $response->assertSee('POR PAGAR');
+        $response->assertSee('Total pendiente actual');
         $response->assertSee('Bs 4.00');
     }
 
@@ -109,7 +107,12 @@ class ShowPackageTest extends TestCase
     public function test_ready_package_detail_shows_manual_delivery_confirmation(): void
     {
         [$user, $branch] = $this->userWithBranch();
-        $package = Package::factory()->forBranch($branch)->withStatus(PackageStatus::ReadyForPickup)->create();
+        $package = Package::factory()->forBranch($branch)->withStatus(PackageStatus::ReadyForPickup)->create([
+            'payment_status' => PackagePaymentStatus::Paid,
+            'paid_amount' => '1.00',
+            'paid_at' => now(),
+            'paid_by' => $user->id,
+        ]);
 
         $response = $this->actingAs($user)->get(route('packages.show', $package));
 

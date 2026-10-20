@@ -3,6 +3,7 @@
 namespace App\Actions\Reports;
 
 use App\Actions\Packages\CalculatePackageStorageAmountAction;
+use App\Enums\PackagePaymentStatus;
 use App\Enums\PackageStatus;
 use App\Models\Package;
 use App\Models\User;
@@ -12,26 +13,32 @@ class GetReportSummaryAction
 {
     public function __construct(private CalculatePackageStorageAmountAction $calculateStorageAmount) {}
 
-    /** @return array{received: int, pending: int, delivered: int, cancelled: int, baseStorageAmount: float, storageSurchargeAmount: float, storageAmount: float, activeSellers: int} */
+    /** @return array{received: int, delivered: int, cancelled: int, paid: int, paidAmount: float, pending: int, pendingAmount: float, legacy: int, activeSellers: int} */
     public function execute(User $user, CarbonInterface $start, CarbonInterface $end): array
     {
-        $packages = Package::query()
+        $companyPackages = Package::query()
             ->where('company_id', $user->company_id)
-            ->whereBetween('received_at', [$start, $end])
+            ->whereBetween('received_at', [$start, $end]);
+        $paidPackages = Package::query()
+            ->where('company_id', $user->company_id)
+            ->where('payment_status', PackagePaymentStatus::Paid)
+            ->whereBetween('paid_at', [$start, $end]);
+        $pendingPackages = Package::query()
+            ->where('company_id', $user->company_id)
+            ->where('payment_status', PackagePaymentStatus::Pending)
+            ->whereIn('status', [PackageStatus::Received, PackageStatus::ReadyForPickup])
             ->get();
-        $amounts = $packages
-            ->reject(fn (Package $package): bool => $package->status === PackageStatus::Cancelled)
-            ->map(fn (Package $package): array => $this->calculateStorageAmount->execute($package));
 
         return [
-            'received' => $packages->count(),
-            'pending' => $packages->whereIn('status', [PackageStatus::Received, PackageStatus::ReadyForPickup])->count(),
-            'delivered' => $packages->where('status', PackageStatus::Delivered)->count(),
-            'cancelled' => $packages->where('status', PackageStatus::Cancelled)->count(),
-            'baseStorageAmount' => $amounts->sum(fn (array $amount): float => (float) $amount['baseAmount']),
-            'storageSurchargeAmount' => $amounts->sum(fn (array $amount): float => (float) $amount['surchargeAmount']),
-            'storageAmount' => $amounts->sum(fn (array $amount): float => (float) $amount['totalAmount']),
-            'activeSellers' => $packages->pluck('seller_id')->filter()->unique()->count(),
+            'received' => (clone $companyPackages)->count(),
+            'delivered' => Package::query()->where('company_id', $user->company_id)->whereBetween('delivered_at', [$start, $end])->count(),
+            'cancelled' => Package::query()->where('company_id', $user->company_id)->whereBetween('cancelled_at', [$start, $end])->count(),
+            'paid' => (clone $paidPackages)->count(),
+            'paidAmount' => (float) (clone $paidPackages)->sum('paid_amount'),
+            'pending' => $pendingPackages->count(),
+            'pendingAmount' => $pendingPackages->sum(fn (Package $package): float => (float) $this->calculateStorageAmount->execute($package)['totalAmount']),
+            'legacy' => Package::query()->where('company_id', $user->company_id)->where('payment_status', PackagePaymentStatus::Legacy)->count(),
+            'activeSellers' => (clone $companyPackages)->whereNotNull('seller_id')->distinct()->count('seller_id'),
         ];
     }
 }

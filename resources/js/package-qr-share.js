@@ -1,14 +1,14 @@
-const shareButtons = document.querySelectorAll('[data-share-pickup-qr]');
+const initializedButtons = new WeakSet();
 
-const downloadBlob = (blob, filename) => {
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+const downloadBlob = (blob, filename, documentObject, urlObject) => {
+    const objectUrl = urlObject.createObjectURL(blob);
+    const link = documentObject.createElement('a');
     link.href = objectUrl;
     link.download = filename;
-    document.body.appendChild(link);
+    documentObject.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(objectUrl);
+    urlObject.revokeObjectURL(objectUrl);
 };
 
 const showStatus = (button, message) => {
@@ -22,64 +22,98 @@ const showStatus = (button, message) => {
     status.classList.remove('hidden');
 };
 
-shareButtons.forEach((button) => {
-    button.addEventListener('click', async () => {
-        const downloadUrl = button.dataset.downloadUrl;
-        const filename = button.dataset.filename;
-        const whatsAppUrl = button.dataset.whatsappUrl;
+const reserveWhatsAppWindow = (windowObject) => {
+    try {
+        const reservedWindow = windowObject.open('', '_blank');
 
-        if (!downloadUrl || !filename || !whatsAppUrl) {
+        if (reservedWindow) {
+            reservedWindow.opener = null;
+        }
+
+        return reservedWindow;
+    } catch {
+        return null;
+    }
+};
+
+const openWhatsApp = (windowObject, reservedWindow, whatsAppUrl) => {
+    if (reservedWindow && !reservedWindow.closed) {
+        reservedWindow.location.replace(whatsAppUrl);
+
+        return;
+    }
+
+    windowObject.location.assign(whatsAppUrl);
+};
+
+export const initializePackageQrShare = ({
+    documentObject = document,
+    windowObject = window,
+    fetchObject = window.fetch.bind(window),
+    urlObject = globalThis.URL,
+} = {}) => {
+    const shareButtons = documentObject.querySelectorAll('[data-share-pickup-qr]');
+
+    shareButtons.forEach((button) => {
+        if (initializedButtons.has(button)) {
             return;
         }
 
-        const canCreateFile = typeof File === 'function';
-        const fileShareProbe = canCreateFile ? new File([''], filename, { type: 'image/png' }) : null;
-        const canShareFile = fileShareProbe !== null
-            && typeof navigator.share === 'function'
-            && typeof navigator.canShare === 'function'
-            && navigator.canShare({ files: [fileShareProbe] });
-        const whatsAppWindow = canShareFile ? null : window.open(whatsAppUrl, '_blank', 'noopener,noreferrer');
-        button.disabled = true;
+        initializedButtons.add(button);
+        button.addEventListener('click', async (event) => {
+            event.preventDefault();
 
-        try {
-            const response = await fetch(downloadUrl, {
-                credentials: 'same-origin',
-                headers: { Accept: 'image/png' },
-            });
-            const contentType = response.headers.get('content-type') ?? '';
-
-            if (!response.ok || !contentType.startsWith('image/png')) {
-                throw new Error('La imagen QR ya no está disponible. Actualiza la página e intenta nuevamente.');
+            if (button.disabled || button.dataset.shareProcessing === 'true') {
+                return;
             }
 
-            const blob = await response.blob();
+            const downloadUrl = button.dataset.downloadUrl;
+            const filename = button.dataset.filename;
+            const whatsAppUrl = button.dataset.whatsappUrl;
 
-            if (canShareFile) {
-                const file = new File([blob], filename, { type: 'image/png' });
+            if (!downloadUrl || !filename || !whatsAppUrl) {
+                return;
+            }
 
-                await navigator.share({
-                    files: [file],
-                    title: 'QR de recojo Tik Shop',
-                    text: 'QR para recoger tu paquete en Tik Shop.',
+            const originalLabel = button.textContent;
+            // This must happen synchronously inside the click to avoid popup blockers.
+            const whatsAppWindow = reserveWhatsAppWindow(windowObject);
+
+            button.dataset.shareProcessing = 'true';
+            button.disabled = true;
+            button.textContent = 'Preparando...';
+
+            try {
+                const response = await fetchObject(downloadUrl, {
+                    credentials: 'same-origin',
+                    headers: { Accept: 'image/png' },
                 });
-                showStatus(button, 'QR enviado al menú de compartir del dispositivo.');
-            } else {
-                downloadBlob(blob, filename);
+                const contentType = response.headers.get('content-type') ?? '';
 
-                if (!whatsAppWindow) {
-                    window.open(whatsAppUrl, '_blank', 'noopener,noreferrer');
+                if (!response.ok || !contentType.startsWith('image/png')) {
+                    throw new Error('La imagen QR ya no está disponible. Actualiza la página e intenta nuevamente.');
                 }
 
+                const blob = await response.blob();
+
+                downloadBlob(blob, filename, documentObject, urlObject);
                 showStatus(button, 'El QR fue descargado. Adjunta manualmente la imagen en el chat de WhatsApp que se abrió.');
-            }
-        } catch (error) {
-            if (error instanceof DOMException && error.name === 'AbortError') {
-                showStatus(button, 'No se compartió el QR porque cancelaste la operación.');
-            } else {
+                openWhatsApp(windowObject, whatsAppWindow, whatsAppUrl);
+            } catch (error) {
+                if (whatsAppWindow && !whatsAppWindow.closed) {
+                    whatsAppWindow.close();
+                }
+
                 showStatus(button, error instanceof Error ? error.message : 'No se pudo preparar el QR para compartir.');
+            } finally {
+                delete button.dataset.shareProcessing;
+                button.disabled = false;
+                button.textContent = originalLabel;
             }
-        } finally {
-            button.disabled = false;
-        }
+        });
     });
-});
+};
+
+if (typeof document !== 'undefined') {
+    initializePackageQrShare();
+}
