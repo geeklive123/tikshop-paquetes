@@ -53,6 +53,8 @@ class PickupResolutionTest extends TestCase
         $response = $this->actingAs($user)->get(route('pickup.show', ['token' => $rawToken]));
 
         $response->assertOk();
+        $response->assertSee('FECHA DE REGISTRO');
+        $response->assertSee('01/10/2026 10:00');
         $response->assertSee("{$expectedDays} ".($expectedDays === 1 ? 'día' : 'días'));
         $response->assertSee('Precio base');
         $response->assertSee('Bs 2.00');
@@ -63,6 +65,19 @@ class PickupResolutionTest extends TestCase
         $response->assertSee('POR PAGAR');
         $response->assertSee('MARCAR COMO PAGADO');
         $response->assertDontSee('CONFIRMAR ENTREGA');
+    }
+
+    public function test_manual_lookup_shows_original_registration_and_delivery_dates(): void
+    {
+        [$user, $package] = $this->pickupContext();
+        $package->update(['status' => PackageStatus::Delivered, 'received_at' => '2026-10-01 23:45:00', 'delivered_at' => '2026-10-08 00:15:00']);
+
+        $this->actingAs($user)->post(route('pickup.manual'), ['tracking_code' => $package->tracking_code])
+            ->assertOk()->assertSee('FECHA DE REGISTRO')->assertSee('01/10/2026 23:45')
+            ->assertSee('FECHA DE RECOJO / ENTREGA')->assertSee('08/10/2026 00:15')->assertSee('8 días');
+        $this->assertSame('2026-10-01 23:45:00', $package->fresh()->received_at->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-10-08 00:15:00', $package->fresh()->delivered_at->format('Y-m-d H:i:s'));
+        $this->assertSame('America/La_Paz', $package->fresh()->received_at->timezoneName);
     }
 
     public function test_qr_shows_paid_snapshot_and_legacy_without_generating_a_charge(): void

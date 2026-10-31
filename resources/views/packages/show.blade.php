@@ -27,7 +27,10 @@
                     </div>
                 </div>
                 <dl class="mt-6 grid grid-cols-1 gap-5 border-t border-gray-100 pt-5 sm:grid-cols-4">
-                    <div><dt class="text-sm font-medium text-gray-500">Fecha de recepción</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->received_at?->format('d/m/Y H:i') ?? 'Sin registrar' }}</dd></div>
+                    <div><dt class="text-sm font-medium text-gray-500">Registrado</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->received_at?->format('d/m/Y H:i') ?? 'Sin registrar' }}</dd></div>
+                    @if ($package->ready_at)<div><dt class="text-sm font-medium text-gray-500">Listo para recoger</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->ready_at->format('d/m/Y H:i') }}</dd></div>@endif
+                    @if ($package->delivered_at)<div><dt class="text-sm font-medium text-gray-500">Entregado / Recogido</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->delivered_at->format('d/m/Y H:i') }}</dd></div>@endif
+                    @if ($package->cancelled_at)<div><dt class="text-sm font-medium text-gray-500">Anulado</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->cancelled_at->format('d/m/Y H:i') }}</dd></div>@endif
                     <div><dt class="text-sm font-medium text-gray-500">Recibido por</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->receivedBy?->name ?? 'Sin registrar' }}</dd></div>
                     <div><dt class="text-sm font-medium text-gray-500">Sucursal</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->branch?->name ?? 'Sin registrar' }}</dd></div>
                     <div><dt class="text-sm font-medium text-gray-500">Categoría / tamaño</dt><dd class="mt-1 text-sm font-semibold text-tik-ink">{{ $package->category?->name ?? 'Sin categoría' }}</dd></div>

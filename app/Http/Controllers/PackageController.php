@@ -80,15 +80,19 @@ class PackageController extends Controller
             ?->id;
         $recipientPrefill = [];
 
-        if ($request->filled('recipient_from')) {
+        if ($request->filled('recipient_from') || $request->filled('package_from')) {
             $sourcePackage = Package::query()
                 ->forCompany($user->company)
-                ->where('ulid', $request->string('recipient_from')->toString())
-                ->firstOrFail(['recipient_name', 'recipient_phone']);
-            $recipientPrefill = [
-                'name' => $sourcePackage->recipient_name,
-                'phone' => $sourcePackage->recipient_phone,
-            ];
+                ->where('ulid', $request->string($request->filled('recipient_from') ? 'recipient_from' : 'package_from')->toString())
+                ->firstOrFail(['seller_id', 'recipient_name', 'recipient_phone']);
+            $preselectedSellerId = $sellers->firstWhere('id', $sourcePackage->seller_id)?->id;
+
+            if ($request->filled('recipient_from')) {
+                $recipientPrefill = [
+                    'name' => $sourcePackage->recipient_name,
+                    'phone' => $sourcePackage->recipient_phone,
+                ];
+            }
         }
 
         return view('packages.create', [

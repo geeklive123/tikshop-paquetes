@@ -17,6 +17,20 @@ class ShowPackageTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
+    public function test_package_detail_displays_operational_dates(): void
+    {
+        [$user, $branch] = $this->userWithBranch();
+        $package = Package::factory()->forBranch($branch)->create([
+            'received_at' => '2026-10-01 10:15:00', 'ready_at' => '2026-10-01 10:20:00',
+            'delivered_at' => '2026-10-08 11:30:00', 'cancelled_at' => '2026-10-09 12:45:00',
+        ]);
+        $this->actingAs($user)->get(route('packages.show', $package))->assertOk()
+            ->assertSee('Registrado')->assertSee('01/10/2026 10:15')
+            ->assertSee('Listo para recoger')->assertSee('01/10/2026 10:20')
+            ->assertSee('Entregado / Recogido')->assertSee('08/10/2026 11:30')
+            ->assertSee('Anulado')->assertSee('09/10/2026 12:45');
+    }
+
     public function test_user_can_view_package_details_from_their_company_using_ulid(): void
     {
         [$user, $branch] = $this->userWithBranch();

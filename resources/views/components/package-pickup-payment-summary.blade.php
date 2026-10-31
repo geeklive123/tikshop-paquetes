@@ -1,6 +1,12 @@
 @props(['package', 'storageAmount'])
 
 <section class="mb-6 rounded-xl border p-4 {{ $package->payment_status === \App\Enums\PackagePaymentStatus::Paid ? 'border-green-200 bg-green-50' : ($package->payment_status === \App\Enums\PackagePaymentStatus::Pending ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50') }}">
+    <dl class="mb-4 grid gap-3 sm:grid-cols-2">
+        <div><dt class="text-sm font-semibold text-gray-700">FECHA DE REGISTRO</dt><dd class="font-bold text-tik-ink">{{ $package->received_at?->format('d/m/Y H:i') ?? 'Sin registrar' }}</dd></div>
+        @if ($package->delivered_at)
+            <div><dt class="text-sm font-semibold text-gray-700">FECHA DE RECOJO / ENTREGA</dt><dd class="font-bold text-tik-ink">{{ $package->delivered_at->format('d/m/Y H:i') }}</dd></div>
+        @endif
+    </dl>
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p class="text-sm font-semibold text-gray-700">Tiempo almacenado</p>
         <p class="text-xl font-black text-tik-ink">{{ $storageAmount['daysStored'] }} {{ $storageAmount['daysStored'] === 1 ? 'día' : 'días' }}</p>

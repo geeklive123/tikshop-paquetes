@@ -163,7 +163,7 @@ class CreatePackageTest extends TestCase
         $response->assertSee('Ver paquete');
         $response->assertSee('Registrar otro paquete');
         $response->assertSee('Registrar otro para el mismo cliente');
-        $response->assertSee('href="'.route('packages.create').'"', false);
+        $response->assertSee('href="'.route('packages.create', ['package_from' => $package->ulid]).'"', false);
         $response->assertSee('href="'.route('packages.create', ['recipient_from' => $package->ulid]).'"', false);
         $response->assertSee('data-whatsapp-url="https://wa.me/59170000002?', false);
         $this->assertDatabaseCount('package_pickup_tokens', 1);
@@ -185,7 +185,9 @@ class CreatePackageTest extends TestCase
     public function test_register_another_for_same_client_prefills_only_recipient_identity(): void
     {
         [$user, $company] = $this->userWithMainBranch(UserRole::Operator);
+        $seller = Seller::factory()->for($company)->create(['active' => true]);
         $sourcePackage = Package::factory()->for($company)->create([
+            'seller_id' => $seller->id,
             'recipient_name' => 'María Pérez',
             'recipient_phone' => '70707070',
             'storage_code' => 'ORIGINAL-1',
@@ -201,7 +203,7 @@ class CreatePackageTest extends TestCase
             'name' => 'María Pérez',
             'phone' => '70707070',
         ]);
-        $response->assertViewHas('preselectedSellerId', null);
+        $response->assertViewHas('preselectedSellerId', $seller->id);
         $response->assertSee('value="María Pérez"', false);
         $response->assertSee('value="70707070"', false);
         $response->assertDontSee('value="ORIGINAL-1"', false);
@@ -216,6 +218,26 @@ class CreatePackageTest extends TestCase
         $this->actingAs($user)->get(route('packages.create', [
             'recipient_from' => $otherPackage->ulid,
         ]))->assertNotFound();
+    }
+
+    public function test_another_package_prefills_only_an_available_seller(): void
+    {
+        [$user, $company] = $this->userWithMainBranch(UserRole::Operator);
+        $seller = Seller::factory()->for($company)->create(['active' => true]);
+        $source = Package::factory()->for($company)->create([
+            'seller_id' => $seller->id, 'recipient_name' => 'Nombre anterior', 'recipient_phone' => '71234567',
+            'storage_code' => 'ANTERIOR', 'description' => 'Descripción anterior', 'notes' => 'Nota anterior',
+        ]);
+
+        $url = route('packages.create', ['package_from' => $source->ulid]);
+        $response = $this->actingAs($user)->get($url);
+        $response->assertOk()->assertViewHas('preselectedSellerId', $seller->id)->assertViewHas('recipientPrefill', []);
+        $response->assertDontSee('Nombre anterior')->assertDontSee('71234567')->assertDontSee('ANTERIOR')->assertDontSee('Descripción anterior')->assertDontSee('Nota anterior');
+
+        $seller->update(['active' => false]);
+        $this->actingAs($user)->get($url)->assertOk()->assertViewHas('preselectedSellerId', null);
+        $other = Package::factory()->create();
+        $this->actingAs($user)->get(route('packages.create', ['package_from' => $other->ulid]))->assertNotFound();
     }
 
     public function test_same_client_flow_creates_an_independent_package_and_validates_again(): void
@@ -235,6 +257,7 @@ class CreatePackageTest extends TestCase
         ])->assertSessionHasErrors(['seller_id', 'package_category_id', 'storage_code']);
 
         $secondPayload = $this->validPayload($category);
+        $secondPayload['seller_id'] = (string) $firstPackage->seller_id;
         $secondPayload['recipient_name'] = $firstPackage->recipient_name;
         $secondPayload['recipient_phone'] = $firstPackage->recipient_phone;
         $secondPayload['storage_code'] = 'NUEVO-2';

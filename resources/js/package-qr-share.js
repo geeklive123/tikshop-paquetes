@@ -51,6 +51,8 @@ export const initializePackageQrShare = ({
     windowObject = window,
     fetchObject = window.fetch.bind(window),
     urlObject = globalThis.URL,
+    navigatorObject = windowObject.navigator ?? {},
+    FileObject = globalThis.File,
 } = {}) => {
     const shareButtons = documentObject.querySelectorAll('[data-share-pickup-qr]');
 
@@ -76,8 +78,12 @@ export const initializePackageQrShare = ({
             }
 
             const originalLabel = button.textContent;
-            // This must happen synchronously inside the click to avoid popup blockers.
-            const whatsAppWindow = reserveWhatsAppWindow(windowObject);
+            const canAttemptFileShare = typeof navigatorObject.share === 'function'
+                && typeof navigatorObject.canShare === 'function'
+                && typeof FileObject === 'function';
+            const probe = canAttemptFileShare ? new FileObject([''], filename, { type: 'image/png' }) : null;
+            const canShareFile = probe !== null && navigatorObject.canShare({ files: [probe] });
+            const whatsAppWindow = canShareFile ? null : reserveWhatsAppWindow(windowObject);
 
             button.dataset.shareProcessing = 'true';
             button.disabled = true;
@@ -96,9 +102,15 @@ export const initializePackageQrShare = ({
 
                 const blob = await response.blob();
 
-                downloadBlob(blob, filename, documentObject, urlObject);
-                showStatus(button, 'El QR fue descargado. Adjunta manualmente la imagen en el chat de WhatsApp que se abrió.');
-                openWhatsApp(windowObject, whatsAppWindow, whatsAppUrl);
+                if (canShareFile) {
+                    const file = new FileObject([blob], filename, { type: 'image/png' });
+                    await navigatorObject.share({ files: [file], title: 'QR de recojo Tik Shop', text: 'QR para recoger tu paquete en Tik Shop.' });
+                    showStatus(button, 'QR enviado al menú de compartir del dispositivo.');
+                } else {
+                    downloadBlob(blob, filename, documentObject, urlObject);
+                    showStatus(button, 'El QR fue descargado. Adjunta manualmente la imagen en el chat de WhatsApp que se abrió.');
+                    openWhatsApp(windowObject, whatsAppWindow, whatsAppUrl);
+                }
             } catch (error) {
                 if (whatsAppWindow && !whatsAppWindow.closed) {
                     whatsAppWindow.close();
