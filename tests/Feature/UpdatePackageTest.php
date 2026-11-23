@@ -127,6 +127,40 @@ class UpdatePackageTest extends TestCase
         $this->assertNotSame($inactiveSeller->id, $package->fresh()->seller_id);
     }
 
+    public function test_changing_category_updates_all_storage_snapshots_from_the_category(): void
+    {
+        [$owner, $package, $seller] = $this->packageContext();
+        $category = PackageCategory::factory()->for($owner->company)->create([
+            'price' => '5.00', 'weekly_storage_increment' => '5.00', 'storage_increment_interval_weeks' => 3,
+        ]);
+
+        $this->actingAs($owner)->put(route('packages.update', $package), [
+            ...$this->validPayload($seller, $category),
+            'storage_price' => '99.00', 'weekly_storage_increment' => '99.00', 'storage_increment_interval_weeks' => 52,
+        ])->assertRedirect(route('packages.show', $package));
+
+        $package->refresh();
+        $this->assertSame('5.00', $package->storage_price);
+        $this->assertSame('5.00', $package->weekly_storage_increment);
+        $this->assertSame(3, $package->storage_increment_interval_weeks);
+        $this->assertArrayHasKey('storage_increment_interval_weeks', $package->events()->where('event', PackageEventType::PackageUpdated)->sole()->metadata['changes']);
+    }
+
+    public function test_unchanged_category_preserves_existing_storage_snapshots(): void
+    {
+        [$owner, $package, $seller, $category] = $this->packageContext();
+        $package->update(['storage_price' => '3.00', 'weekly_storage_increment' => '2.00', 'storage_increment_interval_weeks' => 3]);
+        $category->update(['price' => '9.00', 'weekly_storage_increment' => '7.00', 'storage_increment_interval_weeks' => 2]);
+
+        $this->actingAs($owner)->put(route('packages.update', $package), $this->validPayload($seller, $category))
+            ->assertRedirect(route('packages.show', $package));
+
+        $package->refresh();
+        $this->assertSame('3.00', $package->storage_price);
+        $this->assertSame('2.00', $package->weekly_storage_increment);
+        $this->assertSame(3, $package->storage_increment_interval_weeks);
+    }
+
     public function test_operator_cannot_edit_packages(): void
     {
         [$owner, $package, $seller, $category] = $this->packageContext();

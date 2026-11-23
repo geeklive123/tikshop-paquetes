@@ -142,7 +142,7 @@ class PackageTicketTest extends TestCase
             'storageAmount' => app(CalculatePackageStorageAmountAction::class)->execute($package),
         ])->render();
 
-        $this->assertStringContainsString('Recargo semanal', $ticket);
+        $this->assertStringContainsString('Recargo de almacenaje', $ticket);
         $this->assertStringContainsString('Total almacenaje', $ticket);
         $this->assertStringContainsString('Bs 3.00', $ticket);
     }

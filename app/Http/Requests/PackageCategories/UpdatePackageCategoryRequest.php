@@ -42,6 +42,7 @@ class UpdatePackageCategoryRequest extends FormRequest
             'price' => ['required', 'decimal:0,2', 'min:0'],
             'commission_rate' => ['nullable', 'decimal:0,2', 'min:0'],
             'weekly_storage_increment' => ['required', 'decimal:0,2', 'min:0'],
+            'storage_increment_interval_weeks' => ['required', 'integer', 'min:1', 'max:52'],
             'color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'active' => ['required', 'boolean'],
         ];

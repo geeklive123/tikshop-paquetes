@@ -39,7 +39,7 @@
     <div class="row"><span class="label">Descripción:</span> {{ $payload['description'] ?? '—' }}</div>
     <div class="row"><span class="label">Precio base:</span> Bs {{ $payload['storage_base_amount'] ?? $payload['storage_price'] ?? '—' }}</div>
     <div class="row"><span class="label">Tiempo almacenado:</span> {{ $payload['storage_days'] ?? '—' }} días</div>
-    <div class="row"><span class="label">Recargo semanal:</span> Bs {{ $payload['storage_surcharge_amount'] ?? '0.00' }}</div>
+    <div class="row"><span class="label">Recargo de almacenaje:</span> Bs {{ $payload['storage_surcharge_amount'] ?? '0.00' }}</div>
     <div class="row"><span class="label">Total almacenaje:</span> Bs {{ $payload['storage_total_amount'] ?? $payload['storage_price'] ?? '—' }}</div>
     <div class="row"><span class="label">Recibido:</span> {{ $payload['received_at'] ?? '—' }}</div>
 

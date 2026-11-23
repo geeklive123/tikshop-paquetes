@@ -20,7 +20,7 @@ class CalculatePackageStorageAmountAction
         $daysStored = $this->daysStored($package, $asOf);
         $extraWeeks = $package->status === PackageStatus::Cancelled
             ? 0
-            : intdiv(max(0, $daysStored - 1), 7);
+            : intdiv(max(0, $daysStored - 1), $package->storage_increment_interval_weeks * 7);
         $surchargeCents = $extraWeeks * $incrementCents;
         $calculatedTotalCents = $baseCents + $surchargeCents;
         $totalCents = $package->status === PackageStatus::Delivered && $package->final_storage_amount !== null

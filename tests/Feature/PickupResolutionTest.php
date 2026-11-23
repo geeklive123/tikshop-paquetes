@@ -58,13 +58,27 @@ class PickupResolutionTest extends TestCase
         $response->assertSee("{$expectedDays} ".($expectedDays === 1 ? 'día' : 'días'));
         $response->assertSee('Precio base');
         $response->assertSee('Bs 2.00');
-        $response->assertSee('Recargo semanal');
+        $response->assertSee('Recargo de almacenaje');
         $response->assertSee("Bs {$expectedSurcharge}");
         $response->assertSee('TOTAL A COBRAR');
         $response->assertSee("Bs {$expectedTotal}");
         $response->assertSee('POR PAGAR');
         $response->assertSee('MARCAR COMO PAGADO');
         $response->assertDontSee('CONFIRMAR ENTREGA');
+    }
+
+    public function test_qr_pending_charge_uses_the_snapshotted_three_week_interval(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-25 12:00:00', 'America/La_Paz'));
+        [$user, $package, $rawToken] = $this->pickupContext();
+        $package->update([
+            'payment_status' => PackagePaymentStatus::Pending,
+            'received_at' => CarbonImmutable::parse('2026-10-01 10:00:00', 'America/La_Paz'),
+            'storage_price' => '5.00', 'weekly_storage_increment' => '5.00', 'storage_increment_interval_weeks' => 3,
+        ]);
+
+        $this->actingAs($user)->get(route('pickup.show', ['token' => $rawToken]))
+            ->assertOk()->assertSee('25 días')->assertSee('Recargo de almacenaje')->assertSee('Bs 10.00');
     }
 
     public function test_manual_lookup_shows_original_registration_and_delivery_dates(): void

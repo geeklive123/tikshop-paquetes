@@ -15,21 +15,28 @@
         <x-input-error :messages="$errors->get('code_prefix')" class="mt-2" />
     </div>
     <div>
-        <x-input-label for="price" value="Precio (Bs)" />
+        <x-input-label for="price" value="Precio base (Bs)" />
         <x-text-input id="price" name="price" type="number" min="0" step="0.01" class="mt-1.5 block w-full" :value="old('price', $category->price)" required />
         <x-input-error :messages="$errors->get('price')" class="mt-2" />
     </div>
     <div>
-        <x-input-label for="commission_rate" value="Comisión por entrega (Bs)" />
+        <x-input-label for="commission_rate" value="Comisión vendedor (Bs)" />
         <x-text-input id="commission_rate" name="commission_rate" type="number" min="0" step="0.01" class="mt-1.5 block w-full" :value="old('commission_rate', $category->commission_rate)" placeholder="Sin configurar" />
         <p class="mt-1 text-xs text-gray-500">Déjalo vacío si esta categoría todavía no tiene tarifa.</p>
         <x-input-error :messages="$errors->get('commission_rate')" class="mt-2" />
     </div>
     <div>
-        <x-input-label for="weekly_storage_increment" value="Incremento semanal de almacenaje (Bs)" />
+        <x-input-label for="weekly_storage_increment" value="Incremento de almacenaje (Bs)" />
         <x-text-input id="weekly_storage_increment" name="weekly_storage_increment" type="number" min="0" step="0.01" class="mt-1.5 block w-full" :value="old('weekly_storage_increment', $category->weekly_storage_increment ?? '0.00')" required />
-        <p class="mt-1 text-xs text-gray-500">Se aplica por cada nueva semana iniciada desde el día 8.</p>
         <x-input-error :messages="$errors->get('weekly_storage_increment')" class="mt-2" />
+    </div>
+    <div>
+        <x-input-label for="storage_increment_interval_weeks" value="Aplicar incremento cada" />
+        <div class="mt-1.5 flex items-center gap-2">
+            <x-text-input id="storage_increment_interval_weeks" name="storage_increment_interval_weeks" type="number" min="1" max="52" step="1" class="block w-full" :value="old('storage_increment_interval_weeks', $category->storage_increment_interval_weeks ?? 1)" required />
+            <span class="text-sm text-gray-500">semana(s)</span>
+        </div>
+        <x-input-error :messages="$errors->get('storage_increment_interval_weeks')" class="mt-2" />
     </div>
     <div>
         <x-input-label for="code_start" value="Inicio del rango" />

@@ -39,6 +39,7 @@ class PackageFactory extends Factory
             'storage_code' => 'S'.fake()->numberBetween(1, 20).'-'.fake()->numberBetween(1, 50),
             'storage_price' => fake()->randomFloat(2, 1, 20),
             'weekly_storage_increment' => '0.00',
+            'storage_increment_interval_weeks' => 1,
             'final_storage_amount' => null,
             'sender_name' => fake()->name(),
             'sender_phone' => fake()->phoneNumber(),

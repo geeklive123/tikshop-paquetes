@@ -17,7 +17,7 @@
             <p class="font-bold text-red-900">POR PAGAR</p>
             <dl class="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                 <div><dt class="text-red-700">Precio base</dt><dd class="font-bold text-red-950">Bs {{ $storageAmount['baseAmount'] }}</dd></div>
-                <div><dt class="text-red-700">Recargo semanal</dt><dd class="font-bold text-red-950">Bs {{ $storageAmount['surchargeAmount'] }}</dd></div>
+                <div><dt class="text-red-700">Recargo de almacenaje</dt><dd class="font-bold text-red-950">Bs {{ $storageAmount['surchargeAmount'] }}</dd></div>
             </dl>
             <div class="mt-4 rounded-xl bg-white/70 p-4">
                 <p class="text-xs font-bold uppercase tracking-wider text-red-700">TOTAL A COBRAR</p>

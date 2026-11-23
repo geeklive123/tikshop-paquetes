@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['company_id', 'name', 'code_prefix', 'code_start', 'code_end', 'price', 'commission_rate', 'weekly_storage_increment', 'color', 'active'])]
+#[Fillable(['company_id', 'name', 'code_prefix', 'code_start', 'code_end', 'price', 'commission_rate', 'weekly_storage_increment', 'storage_increment_interval_weeks', 'color', 'active'])]
 class PackageCategory extends Model
 {
     /** @use HasFactory<PackageCategoryFactory> */
@@ -51,6 +51,7 @@ class PackageCategory extends Model
             'price' => 'decimal:2',
             'commission_rate' => 'decimal:2',
             'weekly_storage_increment' => 'decimal:2',
+            'storage_increment_interval_weeks' => 'integer',
             'active' => 'boolean',
         ];
     }

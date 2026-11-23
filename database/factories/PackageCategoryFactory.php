@@ -27,6 +27,7 @@ class PackageCategoryFactory extends Factory
             'price' => fake()->randomFloat(2, 1, 20),
             'commission_rate' => null,
             'weekly_storage_increment' => '0.00',
+            'storage_increment_interval_weeks' => 1,
             'color' => '#E5252A',
             'active' => true,
         ];

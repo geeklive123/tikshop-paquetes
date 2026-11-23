@@ -127,6 +127,7 @@ class CreatePackageTest extends TestCase
             'name' => 'Especial',
             'price' => '10.00',
             'weekly_storage_increment' => '5.00',
+            'storage_increment_interval_weeks' => 3,
             'commission_rate' => '1.50',
         ]);
 
@@ -143,6 +144,7 @@ class CreatePackageTest extends TestCase
         $this->assertSame($category->id, $package->package_category_id);
         $this->assertSame('10.00', $package->storage_price);
         $this->assertSame('5.00', $package->weekly_storage_increment);
+        $this->assertSame(3, $package->storage_increment_interval_weeks);
         $this->assertSame('1.50', $category->fresh()->commission_rate);
     }
 
@@ -354,10 +356,11 @@ class CreatePackageTest extends TestCase
         [$user, , , $category] = $this->userWithMainBranch(UserRole::Operator);
 
         $this->actingAs($user)->post(route('packages.store'), $this->validPayload($category));
-        $category->update(['price' => '9.50', 'weekly_storage_increment' => '1.50']);
+        $category->update(['price' => '9.50', 'weekly_storage_increment' => '1.50', 'storage_increment_interval_weeks' => 3]);
 
         $this->assertSame('3.75', Package::query()->sole()->storage_price);
         $this->assertSame('1.00', Package::query()->sole()->weekly_storage_increment);
+        $this->assertSame(1, Package::query()->sole()->storage_increment_interval_weeks);
     }
 
     public function test_package_cannot_use_the_main_branch_from_another_company(): void
